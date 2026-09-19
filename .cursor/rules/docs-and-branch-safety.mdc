@@ -24,7 +24,7 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 | `README.md` | Setup, run, or stop instructions change (keep **setup/run only** — no architecture) |
 | `backend/presets/PRESETS.md` | Helpers, filters, shipped presets, preset JSON shape, DB metadata, or “how to create a preset” guidance change |
 | `.cursor/skills/create-preset/SKILL.md` | The gated create-preset workflow (POC → name → keywords → ship) changes |
-| `project.html` | Public pitch, diagram, features, or GitHub fork CTA should reflect the new story |
+| `docs/index.html` | Public pitch, diagram, features, or GitHub fork CTA should reflect the new story |
 | `scripts/setup.sh` | Install/bootstrap steps change (deps, venv, env files, DB init) |
 | `scripts/run.sh` | How the app is started changes (ports, processes, commands, health checks) |
 | `test-suite/` | Backend **service-function** behavior, contracts, or coverage expectations change (not HTTP/API tests) |
@@ -33,7 +33,7 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 
 - Prefer accurate, concise updates over rewriting unchanged sections.
 - `README.md` must remain **instructions only** (clone, install/run, stop). No architecture essays.
-- `project.html` stays advertise-level (short, visual); CTAs should send users to **fork the GitHub repo** and run locally — do not link to a hosted app.
+- `docs/index.html` stays advertise-level (short, visual); CTAs should send users to **fork the GitHub repo** and run locally — do not link to a hosted app. Keep pitch assets under `docs/` so GitHub Pages (`/docs` source) stays self-contained.
 - Keep `scripts/setup.sh` and `scripts/run.sh` aligned with `README.md` so one-command setup/run stays correct.
 - When you change `backend/app/services/` (or add a new service module), update or add matching tests under `test-suite/` in the same change set — **only where necessary**.
 - When you change `backend/helpers/` filters, `backend/helpers/apply_preset.py`, `backend/presets/`, or `backend/database/` preset metadata, update `backend/presets/PRESETS.md` (and `CONTEXT.md` / `ARCHITECTURE.md` if layout or contracts changed) in the same change set.
@@ -50,7 +50,7 @@ Once the requested work (code + required doc/script updates) is **complete**, re
 ### What to run
 
 1. **Always** (unless full skip): a **fast local/manual** review of the branch diff — correctness, edge cases, API/input validation, auth/CORS, uploads, secrets, deps, XSS.
-2. **UI responsiveness** — when the change touches frontend UI (`index.html`, `project.html`, `css/`, `script.js`, `js/`, or other user-facing layout/styles): check that the layout works across screen sizes before ending the turn. Cover at least:
+2. **UI responsiveness** — when the change touches frontend UI (`index.html`, `docs/`, `css/`, `script.js`, `js/`, or other user-facing layout/styles): check that the layout works across screen sizes before ending the turn. Cover at least:
    - **Narrow phone** (~320–390px width)
    - **Tablet / medium** (~768px width)
    - **Desktop** (~1280px+ width)

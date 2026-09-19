@@ -21,7 +21,7 @@ Treat close paraphrases the same (e.g. “delete dead code”, “remove unused 
 
 ## Hard rules
 
-- **No UI changes** — do not edit layout, styling, copy, markup structure, or visual behavior in `index.html`, `project.html`, `css/`, `icons/`, or frontend JS **except** to delete proven-unused symbols/imports that have zero effect on runtime UI.
+- **No UI changes** — do not edit layout, styling, copy, markup structure, or visual behavior in `index.html`, `docs/`, `css/`, `icons/`, or frontend JS **except** to delete proven-unused symbols/imports that have zero effect on runtime UI.
 - **No functionality or workflow changes** — keep the same user flows, APIs, CLI helpers, scripts, presets, and gallery behavior. Prefer keeping dual-use / secondary surfaces over deleting them.
 - **Proof required** — delete only what you can show is unreferenced (grep, import graph, tests, docs, scripts). “Looks unused” or “UI doesn’t call it” is **not** enough when docs/scripts/API still expose it.
 - **Gated deletes** — inventory first, show the user a deletion plan, wait for approval, then apply. Do not mass-delete in the same turn as the first inventory unless the user already approved a concrete list.
@@ -52,7 +52,7 @@ Map the live surfaces before hunting “dead” code:
 | Area | Role |
 |------|------|
 | `index.html`, `script.js`, `js/`, `css/` | Primary studio UI |
-| `project.html` | Pitch page (keep unless user asks to change marketing) |
+| `docs/` | Pitch site for GitHub Pages (keep unless user asks to change marketing) |
 | `backend/app/routes/`, `services/` | HTTP API |
 | `backend/helpers/` | CLI + preset pipeline (used by API and local scripts) |
 | `backend/presets/`, `backend/database/`, `previews/` | Shipped presets + gallery |

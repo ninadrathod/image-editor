@@ -20,7 +20,7 @@ Repo: https://github.com/ninadrathod/local-studio
 |------|------|
 | `index.html`, `script.js`, `js/`, `css/`, `icons/` | Frontend UI |
 | `previews/` | Preset gallery assets: `pre-edit/` + `post-edit/` (before/after per DB preset) + `presets.json` |
-| `project.html` | Advertise-style project pitch (fork on GitHub to use) |
+| `docs/` | GitHub Pages pitch site (`docs/index.html` + local css/icons) |
 | `backend/` | FastAPI app |
 | `backend/helpers/` | CLI helpers: subject extraction + JSON preset runner |
 | `backend/presets/` | JSON image presets (ordered filter steps); see `PRESETS.md` |
@@ -44,7 +44,7 @@ Repo: https://github.com/ninadrathod/local-studio
 - Backend image work lives in `backend/app/services/`; routes stay thin.
 - Service-function tests live in `test-suite/` (pytest); keep them in sync when service behavior changes.
 - Do **not** put architecture detail in `README.md`.
-- After meaningful product/code changes, update `project.html`, `README.md`, `ARCHITECTURE.md`, `CONTEXT.md`, `scripts/setup.sh` / `scripts/run.sh`, and `test-suite/` as needed.
+- After meaningful product/code changes, update `docs/index.html`, `README.md`, `ARCHITECTURE.md`, `CONTEXT.md`, `scripts/setup.sh` / `scripts/run.sh`, and `test-suite/` as needed.
 - **Never commit directly on `main`** — create a feature branch first (see Cursor rule).
 - After finishing product/code changes on a branch, the agent must run a thorough **bug + security** review of branch changes (and **UI responsiveness** across phone/tablet/desktop when frontend layout changed) and list **all** findings at once (see `.cursor/rules/docs-and-branch-safety.mdc`).
 

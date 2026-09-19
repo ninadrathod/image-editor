@@ -70,7 +70,7 @@ Detailed architecture for the preset-based local image editor.
 
 ### Marketing page
 
-- `project.html` is a lightweight advertise-style page (flow, CTAs). It points users to **fork the GitHub repo** and run locally — there is no hosted live app.
+- `docs/index.html` is a lightweight advertise-style page (flow, CTAs), published via GitHub Pages from `/docs`. It points users to **fork the GitHub repo** and run locally — there is no hosted live app.
 
 ## Backend
 
@@ -187,7 +187,7 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 | `ARCHITECTURE.md` | This file — design & data flow |
 | `backend/presets/PRESETS.md` | Helpers, filters, shipped presets, create-preset how-to |
 | `.cursor/skills/create-preset/SKILL.md` | Gated agent workflow to design/ship a new preset |
-| `project.html` | Advertise-style overview; CTAs link to GitHub fork |
+| `docs/` | GitHub Pages pitch (`docs/index.html`); CTAs link to GitHub fork |
 | `scripts/setup.sh` | One-command local bootstrap |
 | `scripts/run.sh` | One-command API + frontend start |
 | `test-suite/` | Service-function unit tests (pytest); CI via `.github/workflows/test-suite.yml` |
@@ -207,7 +207,7 @@ New edits should follow the same pattern:
 2. Add or update unit tests under `test-suite/` for that service (not the HTTP route).
 3. Add a thin route under `backend/app/routes/` and mount it from `main.py`.
 4. Add a small client helper under `js/` and wire it from `script.js`.
-5. Refresh docs + `project.html` if user-visible behavior changed.
+5. Refresh docs + `docs/index.html` if user-visible behavior changed.
 
 ### Testing
 
