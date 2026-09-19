@@ -41,7 +41,7 @@ Detailed architecture for the preset-based local image editor.
 ### Entry points
 
 - `index.html` — full-width two-column UI (Tailwind via CDN, custom atmosphere in `css/styles.css`):
-  - **Left (~65%):** search input + preset grid (post-edit preview + name); search reloads the grid from DB name/keyword matches.
+  - **Left (~65%):** search input + preset grid (post-edit preview + name; hover/focus reveals pre-edit original); search reloads the grid from DB name/keyword matches.
   - **Right (~35%):** file upload / original preview, then edited result + **Generate edit** / **Download**.
 - `script.js` — wires gallery load, debounced search (filters gallery), selection, file pick/drag-drop, generate button.
 - `js/image.js` — `isImageFile`, object URL create/revoke.
@@ -49,7 +49,7 @@ Detailed architecture for the preset-based local image editor.
 
 ### UX flow
 
-1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails (entries must use a valid `preset_name` and a relative path under `previews/pre-edit/` or `previews/post-edit/`).
+1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails with pre-edit originals stacked underneath (entries must use a valid `preset_name` and relative paths under `previews/pre-edit/` and `previews/post-edit/`). Hover or keyboard focus reveals the original.
 2. User clicks a preset card to select it, **or** types in the left-column search box (debounced) to query DB `preset_name` + keywords via `GET /api/presets/search?q=…` — the gallery reloads to matching presets only (cleared query restores the full gallery).
 3. User selects or drops a file; client rejects non-images and shows an inline error.
 4. Original preview uses a local object URL.

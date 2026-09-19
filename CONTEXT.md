@@ -6,7 +6,7 @@ Short briefing for AI agents and new contributors. Prefer this file for orientat
 
 A local **image editor** for applying JSON presets to photos:
 
-1. User picks a preset from the gallery (post-edit preview thumbnails from `previews/`).
+1. User picks a preset from the gallery (post-edit thumbnails from `previews/`; hover shows the pre-edit original).
 2. User uploads an image in the browser (validated as an image).
 3. Frontend `POST`s preset name + file to `POST /api/apply-preset`.
 4. Backend resolves the preset from SQLite, runs the JSON filter pipeline, returns a PNG.
@@ -34,6 +34,8 @@ Repo: https://github.com/ninadrathod/local-studio
 | `ARCHITECTURE.md` | How the system works |
 | `.cursor/rules/` | Agent rules (docs sync, branch safety, post-change review) |
 | `.cursor/skills/cleanup-after-push/` | After push: checkout main, pull, delete local feature branch |
+| `.cursor/skills/commit-draft-pr/` | Commit locally (no push) and draft PR title + description |
+| `.cursor/skills/prune-unused-code/` | Audit + remove unused code without changing UI/workflows |
 
 ## Key conventions
 
@@ -59,7 +61,7 @@ Repo: https://github.com/ninadrathod/local-studio
 
 ## Current scope
 
-- Preset gallery (left, ~65% width on desktop): search + post-edit thumbnails from `previews/presets.json`; click to select
+- Preset gallery (left, ~65% width on desktop): search + post-edit thumbnails from `previews/presets.json`; hover/focus reveals pre-edit original; click to select
 - Search filters the gallery in place via realtime `GET /api/presets/search?q=…` (DB `preset_name` + `keywords`)
 - Image upload (right, ~35% width on desktop): client-side type check + preview
 - Studio UI uses the full browser width (no max-content cap on `index.html`)
@@ -76,5 +78,7 @@ Optional helpers:
 - `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); wired into the index UI gallery
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
 - To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/`
+- To commit locally without pushing and get PR title/description copy, use skill `.cursor/skills/commit-draft-pr/`
+- To remove unused/redundant code without changing UI or workflows, use skill `.cursor/skills/prune-unused-code/`
 
 `./scripts/setup.sh` installs helper deps and downloads the `u2net` model into `~/.rembg/` (outside the repo; gitignored). It also recreates `backend/.venv` if the project was renamed/moved and console-script shebangs are stale. `./scripts/run.sh` uses the venv Python directly and exits with a clear error if deps are missing or ports `8000`/`5500` are already taken.
