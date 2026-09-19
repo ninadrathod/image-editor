@@ -50,3 +50,13 @@ python3 -m http.server 5500
 ```bash
 docker compose down
 ```
+
+## Run tests
+
+Service-function unit tests (not HTTP/API) live in `test-suite/` and run on PRs via GitHub Actions.
+
+```bash
+source backend/.venv/bin/activate
+pip install -r test-suite/requirements.txt
+pytest test-suite/ -v
+```
