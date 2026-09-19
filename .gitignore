@@ -11,3 +11,12 @@ build/
 node_modules/
 .idea/
 .vscode/
+
+# rembg / ONNX model weights — download via setup, never commit
+.rembg/
+**/*.onnx
+backend/helpers/models/
+
+# numba / runtime junk
+*.ses
+:memory:.ses

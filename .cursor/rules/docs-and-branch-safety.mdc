@@ -1,5 +1,5 @@
 ---
-description: Branch safety, docs/scripts sync, and post-change bug + security review
+description: Branch safety, docs sync, and lightweight post-change review (no Bugbot)
 alwaysApply: true
 ---
 
@@ -22,8 +22,10 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 | `CONTEXT.md` | Scope, layout, conventions, or local defaults change |
 | `ARCHITECTURE.md` | Design, data flow, endpoints, stack, or extension points change |
 | `README.md` | Setup, run, or stop instructions change (keep **setup/run only** — no architecture) |
+| `backend/presets/PRESETS.md` | Helpers, filters, shipped presets, preset JSON shape, DB metadata, or “how to create a preset” guidance change |
+| `.cursor/skills/create-preset/SKILL.md` | The gated create-preset workflow (POC → name → keywords → ship) changes |
 | `project.html` | Public pitch, diagram, features, or GitHub fork CTA should reflect the new story |
-| `scripts/setup.sh` | Install/bootstrap steps change (deps, venv, Docker prep, env files) |
+| `scripts/setup.sh` | Install/bootstrap steps change (deps, venv, env files, DB init) |
 | `scripts/run.sh` | How the app is started changes (ports, processes, commands, health checks) |
 | `test-suite/` | Backend **service-function** behavior, contracts, or coverage expectations change (not HTTP/API tests) |
 
@@ -34,23 +36,23 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 - `project.html` stays advertise-level (short, visual); CTAs should send users to **fork the GitHub repo** and run locally — do not link to a hosted app.
 - Keep `scripts/setup.sh` and `scripts/run.sh` aligned with `README.md` so one-command setup/run stays correct.
 - When you change `backend/app/services/` (or add a new service module), update or add matching tests under `test-suite/` in the same change set — **only where necessary**.
-- If a change is purely internal with zero user/setup/API impact, skip doc/script updates — but when in doubt, update `CONTEXT.md`, `ARCHITECTURE.md`, and the scripts if startup changed.
+- When you change `backend/helpers/` filters, `backend/helpers/apply_preset.py`, `backend/presets/`, or `backend/database/` preset metadata, update `backend/presets/PRESETS.md` (and `CONTEXT.md` / `ARCHITECTURE.md` if layout or contracts changed) in the same change set.
+- If a change is purely internal with zero user/setup/API/preset impact, skip doc/script updates — but when in doubt, update `CONTEXT.md`, `ARCHITECTURE.md`, `PRESETS.md` when presets/helpers are involved, and the scripts if startup changed.
 
 ## After all changes are finished — bug & security review
 
-Once the requested work (code + required doc/script updates) is **complete**, run a **thorough bug and security review of the current branch** before ending the turn.
+Once the requested work (code + required doc/script updates) is **complete**, review **branch changes** vs `main`/`master` (committed + uncommitted) before ending the turn.
 
-1. Review **branch changes** vs `main`/`master` (committed + uncommitted on this branch).
-2. Prefer launching both review subagents (in parallel when possible):
-   - `bugbot` with `Diff: branch changes`
-   - `security-review` with `Diff: branch changes`
-3. If subagents are unavailable, perform an equivalent manual review of the branch diff covering correctness, edge cases, API/input validation, auth/CORS, file upload risks, secrets, dependency footguns, and XSS.
-4. **List every finding in one response** — a single combined list/table, sorted by severity (highest first). Do not drip-feed issues across multiple messages.
-5. Columns: **Severity | Location (`file:line`) | Finding | Type** (`bug` or `security`).
-6. Do **not** auto-fix findings unless the user asks; report first.
-7. If there are no findings, say so in one short line.
+### When to skip review
 
-Skip this review only for pure doc/typo/rule-text edits with no product or script behavior change.
+- **Skip entirely** for pure doc/typo/rule-text edits with no product or script behavior change.
+
+### What to run
+
+1. **Always** (unless full skip): a **fast local/manual** review of the branch diff — correctness, edge cases, API/input validation, auth/CORS, uploads, secrets, deps, XSS.
+2. **Security review subagent** — optional; launch only when the change touches auth, uploads, secrets, network, new endpoints, or user-controlled input. Use `Diff: branch changes`.
+3. **Bugbot** — **do not launch**. Never start Bugbot (or relaunch it) unless the user **explicitly** asks for Bugbot in that turn. Prefer the local/manual pass above.
+4. **List every finding in one response** — one combined list/table, severity highest first. Columns: **Severity | Location (`file:line`) | Finding | Type** (`bug` or `security`). Do not auto-fix unless asked. If none, say so in one short line.
 
 ## Do not
 
@@ -58,4 +60,7 @@ Skip this review only for pure doc/typo/rule-text edits with no product or scrip
 - Leave docs or scripts describing endpoints, ports, or flows that no longer exist.
 - Put deep architecture detail into `README.md`.
 - Change `backend/app/services/` without updating `test-suite/` when those changes need test coverage.
-- End a feature/fix turn without the post-change bug + security listing (when the skip condition does not apply).
+- Change helpers, filters, preset JSON, or preset DB behavior without updating `backend/presets/PRESETS.md` when that catalog/how-to is affected.
+- End a feature/fix turn without the post-change findings listing (when the skip condition does not apply).
+- Launch Bugbot unless the user explicitly requests it.
+- Assume cloud image APIs (e.g. Gemini) are part of this project — image edits use local helpers/presets only.
