@@ -6,7 +6,7 @@ Short briefing for AI agents and new contributors. Prefer this file for orientat
 
 A local **image editor** for applying JSON presets to photos:
 
-1. User picks a preset from the gallery (post-edit preview thumbnails from `previews/`).
+1. User picks a preset from the gallery (post-edit thumbnails from `previews/`; hover shows the pre-edit original).
 2. User uploads an image in the browser (validated as an image).
 3. Frontend `POST`s preset name + file to `POST /api/apply-preset`.
 4. Backend resolves the preset from SQLite, runs the JSON filter pipeline, returns a PNG.
@@ -59,7 +59,7 @@ Repo: https://github.com/ninadrathod/local-studio
 
 ## Current scope
 
-- Preset gallery (left, ~65% width on desktop): search + post-edit thumbnails from `previews/presets.json`; click to select
+- Preset gallery (left, ~65% width on desktop): search + post-edit thumbnails from `previews/presets.json`; hover/focus reveals pre-edit original; click to select
 - Search filters the gallery in place via realtime `GET /api/presets/search?q=…` (DB `preset_name` + `keywords`)
 - Image upload (right, ~35% width on desktop): client-side type check + preview
 - Studio UI uses the full browser width (no max-content cap on `index.html`)

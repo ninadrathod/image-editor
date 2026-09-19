@@ -145,11 +145,31 @@ body {
     box-shadow 0.25s var(--ease);
 }
 
-.preset-card__media img {
+.preset-card__media img,
+.preset-card__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.preset-card__img--original {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.28s var(--ease);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .preset-card:hover .preset-card__img--original {
+    opacity: 1;
+  }
+}
+
+.preset-card:focus-visible .preset-card__img--original,
+.preset-card:active .preset-card__img--original {
+  opacity: 1;
 }
 
 .preset-card:hover .preset-card__media {
@@ -591,5 +611,9 @@ body {
 
   .preset-card:hover {
     transform: none;
+  }
+
+  .preset-card__img--original {
+    transition: none;
   }
 }
