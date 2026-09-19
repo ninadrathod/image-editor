@@ -86,15 +86,18 @@ backend/
     main.py              # FastAPI app, CORS, /health, router mount
     routes/
       blur.py            # POST /api/blur
+      preset.py          # POST /api/apply-preset
     services/
       blur.py            # is_allowed_image, apply_blur
-      image_io.py        # load_image, save_png_bytes
+      image_io.py        # load_image, save_png_bytes, upload/dimension caps
+      preset.py          # resolve DB preset name → JSON (sandboxed); apply_named_preset
 
 test-suite/              # pytest unit tests for services only (not routes/HTTP)
   conftest.py            # adds backend/ to sys.path
   requirements.txt       # pytest
   test_blur.py
   test_image_io.py
+  test_preset.py
 ```
 ### API contracts
 
@@ -102,8 +105,11 @@ test-suite/              # pytest unit tests for services only (not routes/HTTP)
 |--------|------|---------|----------|
 | GET | `/health` | — | `{ "status": "ok" }` |
 | POST | `/api/blur` | `multipart/form-data` field `file` | `image/png` bytes |
+| POST | `/api/apply-preset` | `multipart/form-data` fields `preset_name`, `file` | `image/png` bytes |
 
-Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, empty file, decode failure).
+Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, empty file, unknown preset, decode failure). Oversized uploads/images return **413**. Apply-preset returns **503** when the concurrency gate is full.
+
+Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`), max side **8000** px, max **25M** pixels. Preset JSON paths from the DB must resolve under `backend/presets/` (`PresetPathUnsafeError` otherwise). Apply-preset runs off the event loop via `asyncio.to_thread` and allows only **1** concurrent job (`MAX_CONCURRENT_PRESET_JOBS`) so rembg cannot pile up.
 
 ### Blur algorithm
 
@@ -119,15 +125,16 @@ Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, 
 - Gitignore blocks `.rembg/`, `*.onnx`, and `backend/helpers/models/` so weights are never committed.
 - Example: `python backend/helpers/extract_subject.py photo.jpg -o subject.png`
 
-### JSON preset pipeline (CLI only)
+### JSON preset pipeline
 
 - Presets live in `backend/presets/*.json` as ordered `steps` with named layers (`image`, `subject`, `background`, …).
 - Runner: `backend/helpers/apply_preset.py` (uses `filters.py`).
+- HTTP: `POST /api/apply-preset` looks up `preset_name` in `presets.db`, loads that JSON path, runs the same runner, returns PNG (`app/services/preset.py` + `app/routes/preset.py`).
 - Built-in filters: `extract_subject`, `brightness`, `color`, `contrast`, `overlay`, `grayscale`, `glow_border`, `glow_line_border`, `composite`.
 - `glow_line_border` draws a colored outline ring only (does not fill/glow the subject body). Pass `"color": [R,G,B]` (or `"rgb"`).
 - Shipped presets:
   - `bw_bg_glowing_subject` — extract → grayscale background → `glow_line_border` on subject → composite
-- Example: `python backend/helpers/apply_preset.py photo.jpg -p bw_bg_glowing_subject -o out.png`
+- Example CLI: `python backend/helpers/apply_preset.py photo.jpg -p bw_bg_glowing_subject -o out.png`
 - Human/agent guide: `backend/presets/PRESETS.md`
 - New-preset workflow skill: `.cursor/skills/create-preset/SKILL.md`
 

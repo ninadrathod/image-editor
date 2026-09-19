@@ -100,6 +100,6 @@ print(add_preset(
 ## Rules
 
 - Never commit rembg/ONNX weights; models stay in `~/.rembg/`.
-- Do not invent HTTP routes unless asked — presets are CLI/helper scoped today.
+- Do not invent extra HTTP routes unless asked — apply by DB name via existing `POST /api/apply-preset`.
 - Do not finalize name/keywords/DB/files before the user confirms each gate.
 - If a needed look cannot be done with current filters, say so in step 1–2 and propose a small new helper filter before POC.

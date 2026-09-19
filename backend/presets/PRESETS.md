@@ -15,6 +15,7 @@ For the agent workflow (POC → name → keywords → ship), use the project ski
 | `backend/helpers/extract_subject.py` | Subject cutout CLI (rembg / `u2net`) |
 | `backend/helpers/download_model.py` | Warm-cache `u2net` during setup |
 | `backend/database/` | SQLite metadata (`presets.db`, `db_ops.py`) |
+| `POST /api/apply-preset` | HTTP: DB `preset_name` + image upload → PNG |
 
 ## Run a preset
 
@@ -25,6 +26,16 @@ python backend/helpers/apply_preset.py path/to/photo.jpg -p PRESET_NAME -o out.p
 
 `PRESET_NAME` is a file under `backend/presets/` (with or without `.json`), or a full path to a JSON file.
 
+Via API (name must exist in `presets.db`):
+
+```bash
+curl -s -X POST "http://localhost:8000/api/apply-preset" \
+  -F "preset_name=bw_bg_glowing_subject" \
+  -F "file=@path/to/photo.jpg" \
+  -o out.png
+```
+
+Only one apply-preset job runs at a time; concurrent extras get HTTP **503**.
 ## Shipped presets
 
 ### `bw_bg_glowing_subject`
