@@ -20,10 +20,8 @@ const els = {
   presetGrid: document.getElementById("preset-grid"),
   presetLoading: document.getElementById("preset-loading"),
   presetError: document.getElementById("preset-error"),
-  presetHint: document.getElementById("preset-hint"),
   selectedPresetLabel: document.getElementById("selected-preset-label"),
   presetSearch: document.getElementById("preset-search"),
-  searchMeta: document.getElementById("search-meta"),
   searchError: document.getElementById("search-error"),
   input: document.getElementById("image-input"),
   dropZone: document.getElementById("drop-zone"),
@@ -165,13 +163,11 @@ function setSelectedPreset(name) {
     const label = formatPresetLabel(name);
     els.selectedPresetLabel.textContent = label;
     els.selectedPresetLabel.title = name;
-    els.presetHint.textContent = `Selected: ${label}`;
     els.presetGrid.setAttribute("aria-activedescendant", `preset-${name}`);
     activeCard?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
   } else {
     els.selectedPresetLabel.textContent = "No preset selected";
     els.selectedPresetLabel.removeAttribute("title");
-    els.presetHint.textContent = "Hover for original · click to select";
     els.presetGrid.removeAttribute("aria-activedescendant");
   }
 
@@ -379,7 +375,6 @@ async function loadPresets() {
     }
 
     renderPresetGrid(allGalleryPresets);
-    if (els.searchMeta) els.searchMeta.textContent = "Type to filter presets";
   } catch (err) {
     els.presetLoading?.remove();
     allGalleryPresets = [];
@@ -397,14 +392,10 @@ function applySearchFilter(matchNames) {
   const allowed = new Set(matchNames.filter((n) => isValidPresetName(n)));
   const filtered = allGalleryPresets.filter((p) => allowed.has(p.preset_name));
   renderPresetGrid(filtered, { emptyMessage: "No presets match that search." });
-  if (els.searchMeta) {
-    els.searchMeta.textContent = `${filtered.length} match${filtered.length === 1 ? "" : "es"}`;
-  }
 }
 
 function clearSearchFilter() {
   renderPresetGrid(allGalleryPresets);
-  if (els.searchMeta) els.searchMeta.textContent = "Type to filter presets";
 }
 
 async function runPresetSearch(query) {

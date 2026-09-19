@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,17 +17,20 @@
         theme: {
           extend: {
             fontFamily: {
-              display: ["Fraunces", "Georgia", "serif"],
-              sans: ["Outfit", "sans-serif"],
+              display: ["Fredoka", "system-ui", "sans-serif"],
+              brand: ["Lilita One", "Fredoka", "system-ui", "sans-serif"],
+              sans: ["Nunito", "system-ui", "sans-serif"],
             },
             colors: {
-              ink: "#141816",
-              mute: "#5c6560",
-              paper: "#eef0ee",
-              chalk: "#f7f8f6",
-              line: "#d2d6d3",
-              forest: { DEFAULT: "#2a453c", deep: "#1c312a" },
-              brass: "#8a734f",
+              ink: "#1a1a1a",
+              mute: "#5c5652",
+              paper: "#fff8e7",
+              chalk: "#fffef8",
+              line: "#1a1a1a",
+              coral: { DEFAULT: "#ff6b4a", deep: "#e85535" },
+              sky: "#4ec5f1",
+              lemon: "#ffe566",
+              rose: "#e85535",
             },
             maxWidth: { stage: "72rem" },
           },
@@ -36,112 +39,70 @@
     </script>
     <link rel="stylesheet" href="css/styles.css" />
   </head>
-  <body class="font-sans text-ink bg-paper antialiased">
-    <div class="page-shell min-h-dvh flex flex-col">
-      <header class="site-header shrink-0">
-        <div
-          class="mx-auto w-full max-w-stage px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between gap-3"
-        >
-          <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <img src="icons/logo.svg" alt="" class="w-8 h-8 sm:w-9 sm:h-9 shrink-0" />
-            <span class="font-display font-semibold text-lg sm:text-xl tracking-tight truncate">
-              The Local Studio
-            </span>
-          </div>
-          <a
-            href="https://github.com/ninadrathod/local-studio"
-            class="btn btn-primary !py-2.5 !px-4 text-sm shrink-0"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            GitHub
-          </a>
-        </div>
-      </header>
-
-      <main class="flex-1 mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
-        <section class="hero text-center mb-12 sm:mb-16">
-          <p class="eyebrow text-brass font-medium tracking-[0.18em] uppercase text-[0.7rem] sm:text-xs mb-3 sm:mb-4">
+  <body class="font-sans text-ink bg-paper antialiased about-page">
+    <div class="page-shell page-shell--no-header about-shell">
+      <main class="about-main">
+        <section class="about-hero text-center">
+          <p class="about-eyebrow text-coral font-display font-semibold tracking-[0.14em] uppercase">
             Open-source image tool
           </p>
-          <h1
-            class="font-display font-semibold text-balance text-[clamp(2rem,6vw,3.5rem)] leading-[1.1] tracking-tight"
-          >
+          <a href="index.html" class="about-logo inline-flex justify-center">
+            <img src="icons/logo.svg" alt="" />
+          </a>
+          <h1 class="about-title font-brand tracking-wide">
             The Local Studio
           </h1>
-          <p class="mt-4 sm:mt-5 text-mute text-base sm:text-lg max-w-xl mx-auto text-pretty leading-relaxed">
-            A local image editor with a calm workflow — pick a preset, upload a photo,
+          <p class="about-lead text-mute font-semibold">
+            A colorful local image editor — pick a preset, upload a photo,
             generate the edit on your machine. Nothing is hosted as a live app.
           </p>
-          <div class="mt-8 flex justify-center">
-            <a
-              href="https://github.com/ninadrathod/local-studio/fork"
-              class="btn btn-primary w-full sm:w-auto"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Fork on GitHub
-            </a>
-          </div>
         </section>
 
-        <section class="mb-12 sm:mb-16" aria-labelledby="how-heading">
-          <h2 id="how-heading" class="font-display font-semibold text-xl sm:text-2xl text-center mb-8 sm:mb-10">
+        <section class="about-flow" aria-labelledby="how-heading">
+          <h2 id="how-heading" class="about-flow-title font-display font-semibold text-center">
             How it works
           </h2>
-          <ol class="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4">
-            <li class="flow-step text-center sm:text-left px-2">
-              <span
-                class="inline-flex items-center justify-center w-9 h-9 rounded-full border border-line bg-chalk font-display text-sm text-forest-deep mb-3"
-              >
-                1
-              </span>
+          <ol class="about-steps">
+            <li class="flow-step about-step text-center sm:text-left">
+              <span class="about-step-num bg-lemon text-ink font-display">1</span>
               <span class="flow-connector" aria-hidden="true"></span>
-              <h3 class="font-display font-semibold text-base mb-1.5">Choose a preset</h3>
-              <p class="text-sm text-mute leading-relaxed">
-                Browse gallery previews or search by name/keyword — hover a look to see the original, then click to select.
+              <h3 class="font-display font-semibold">Choose a preset</h3>
+              <p class="text-mute font-semibold">
+                Browse or search looks — hover for the original, then click to select.
               </p>
             </li>
-            <li class="flow-step text-center sm:text-left px-2">
-              <span
-                class="inline-flex items-center justify-center w-9 h-9 rounded-full border border-line bg-chalk font-display text-sm text-forest-deep mb-3"
-              >
-                2
-              </span>
+            <li class="flow-step about-step text-center sm:text-left">
+              <span class="about-step-num bg-sky text-ink font-display">2</span>
               <span class="flow-connector" aria-hidden="true"></span>
-              <h3 class="font-display font-semibold text-base mb-1.5">Upload &amp; generate</h3>
-              <p class="text-sm text-mute leading-relaxed">
-                Drop in your photo, then generate — a local Python API runs the preset and returns a PNG.
+              <h3 class="font-display font-semibold">Upload &amp; generate</h3>
+              <p class="text-mute font-semibold">
+                Drop in your photo — a local API runs the preset and returns a PNG.
               </p>
             </li>
-            <li class="flow-step text-center sm:text-left px-2">
-              <span
-                class="inline-flex items-center justify-center w-9 h-9 rounded-full border border-line bg-chalk font-display text-sm text-forest-deep mb-3"
-              >
-                3
-              </span>
-              <h3 class="font-display font-semibold text-base mb-1.5">Download</h3>
-              <p class="text-sm text-mute leading-relaxed">
+            <li class="flow-step about-step text-center sm:text-left">
+              <span class="about-step-num bg-coral text-white font-display">3</span>
+              <h3 class="font-display font-semibold">Download</h3>
+              <p class="text-mute font-semibold">
                 Preview the edited result and save it to your machine.
               </p>
             </li>
           </ol>
         </section>
 
-        <section class="cta-band text-center px-6 sm:px-10 py-10 sm:py-12">
-          <h2 class="font-display font-semibold text-2xl sm:text-3xl mb-3 tracking-tight">
+        <section class="cta-band about-cta text-center">
+          <h2 class="font-display font-semibold tracking-tight">
             Ready to try?
           </h2>
-          <p class="text-white/75 text-sm sm:text-base mb-7 max-w-md mx-auto leading-relaxed">
+          <p class="text-white/90 font-semibold">
             Fork the repo, run
-            <code class="text-white/95 font-medium">./scripts/setup.sh</code>
+            <code class="text-lemon font-bold">./scripts/setup.sh</code>
             then
-            <code class="text-white/95 font-medium">./scripts/run.sh</code>
+            <code class="text-lemon font-bold">./scripts/run.sh</code>
             — apply your first preset locally in under a minute.
           </p>
           <a
             href="https://github.com/ninadrathod/local-studio/fork"
-            class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-full font-medium bg-chalk text-forest-deep hover:bg-white transition-colors"
+            class="btn-on-cta inline-flex items-center justify-center font-display"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -150,8 +111,8 @@
         </section>
       </main>
 
-      <footer class="site-footer mt-auto">
-        <div class="mx-auto max-w-stage px-4 sm:px-6 lg:px-8 py-5 sm:py-6 text-center text-xs text-mute">
+      <footer class="about-footer site-footer">
+        <div class="text-center text-mute font-semibold">
           The Local Studio · open source image editor
         </div>
       </footer>
