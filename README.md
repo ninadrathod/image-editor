@@ -30,9 +30,13 @@ cd local-studio
 
 4. Open [http://localhost:5500](http://localhost:5500), pick a preset, upload an image, and click **Generate edit**.
 
-Press **Ctrl+C** in the terminal to stop both servers.
+Press **Ctrl+C** in the terminal to stop both servers, or free the ports anytime with:
 
-If `./scripts/run.sh` reports a broken virtualenv or a port already in use, re-run `./scripts/setup.sh` (it recreates a relocated/broken `backend/.venv`) and free ports `8000` / `5500`, or override with `API_PORT=…` / `FRONTEND_PORT=…`.
+```bash
+./scripts/stop.sh
+```
+
+If `./scripts/run.sh` reports a broken virtualenv or a port already in use, re-run `./scripts/setup.sh` (it recreates a relocated/broken `backend/.venv`) and run `./scripts/stop.sh` (or override with `API_PORT=…` / `FRONTEND_PORT=…`).
 
 ## Run tests
 
