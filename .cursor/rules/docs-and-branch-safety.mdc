@@ -1,0 +1,58 @@
+---
+description: Branch safety, docs/scripts sync, and post-change bug + security review
+alwaysApply: true
+---
+
+# Docs sync, branch safety & post-change review
+
+## Before any code or doc edits
+
+1. Check the current git branch.
+2. If the branch is `main` or `master`, **create and switch to a new feature branch** before changing files.
+   - Name branches like `feature/<short-description>` or `fix/<short-description>`.
+   - Example: `git checkout -b feature/add-sharpen-endpoint`
+3. Do not commit or push to `main`/`master` directly.
+
+## After meaningful project changes
+
+When you change product behavior, APIs, setup steps, UI flows, or project structure, update **all** of the following that are affected (same change set):
+
+| File | Update when… |
+|------|----------------|
+| `CONTEXT.md` | Scope, layout, conventions, or local defaults change |
+| `ARCHITECTURE.md` | Design, data flow, endpoints, stack, or extension points change |
+| `README.md` | Setup, run, or stop instructions change (keep **setup/run only** — no architecture) |
+| `project.html` | Public pitch, diagram, features, or GitHub fork CTA should reflect the new story |
+| `scripts/setup.sh` | Install/bootstrap steps change (deps, venv, Docker prep, env files) |
+| `scripts/run.sh` | How the app is started changes (ports, processes, commands, health checks) |
+
+### Rules of thumb
+
+- Prefer accurate, concise updates over rewriting unchanged sections.
+- `README.md` must remain **instructions only** (clone, install/run, stop). No architecture essays.
+- `project.html` stays advertise-level (short, visual); CTAs should send users to **fork the GitHub repo** and run locally — do not link to a hosted app.
+- Keep `scripts/setup.sh` and `scripts/run.sh` aligned with `README.md` so one-command setup/run stays correct.
+- If a change is purely internal with zero user/setup/API impact, skip doc/script updates — but when in doubt, update `CONTEXT.md`, `ARCHITECTURE.md`, and the scripts if startup changed.
+
+## After all changes are finished — bug & security review
+
+Once the requested work (code + required doc/script updates) is **complete**, run a **thorough bug and security review of the current branch** before ending the turn.
+
+1. Review **branch changes** vs `main`/`master` (committed + uncommitted on this branch).
+2. Prefer launching both review subagents (in parallel when possible):
+   - `bugbot` with `Diff: branch changes`
+   - `security-review` with `Diff: branch changes`
+3. If subagents are unavailable, perform an equivalent manual review of the branch diff covering correctness, edge cases, API/input validation, auth/CORS, file upload risks, secrets, dependency footguns, and XSS.
+4. **List every finding in one response** — a single combined list/table, sorted by severity (highest first). Do not drip-feed issues across multiple messages.
+5. Columns: **Severity | Location (`file:line`) | Finding | Type** (`bug` or `security`).
+6. Do **not** auto-fix findings unless the user asks; report first.
+7. If there are no findings, say so in one short line.
+
+Skip this review only for pure doc/typo/rule-text edits with no product or script behavior change.
+
+## Do not
+
+- Skip the branch check because the change “is small”.
+- Leave docs or scripts describing endpoints, ports, or flows that no longer exist.
+- Put deep architecture detail into `README.md`.
+- End a feature/fix turn without the post-change bug + security listing (when the skip condition does not apply).
