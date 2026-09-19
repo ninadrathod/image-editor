@@ -19,7 +19,7 @@ Repo: https://github.com/ninadrathod/image-editor
 |------|------|
 | `index.html`, `script.js`, `js/`, `css/`, `icons/` | Frontend UI |
 | `project.html` | Advertise-style project pitch (fork on GitHub to use) |
-| `backend/` | FastAPI app, Dockerfile |
+| `backend/` | FastAPI app |
 | `backend/helpers/` | CLI helpers: subject extraction + JSON preset runner |
 | `backend/presets/` | JSON image presets (ordered filter steps); see `PRESETS.md` |
 | `backend/database/` | SQLite preset metadata (`presets.db` + `db_ops.py`) |
@@ -28,7 +28,6 @@ Repo: https://github.com/ninadrathod/image-editor
 | `.github/workflows/` | CI (runs `test-suite/` on PRs) |
 | `scripts/setup.sh` | Full local setup (venv + deps) |
 | `scripts/run.sh` | Start API + frontend together |
-| `docker-compose.yml` | Runs the API on port 8000 |
 | `README.md` | Setup & run only |
 | `ARCHITECTURE.md` | How the system works |
 | `.cursor/rules/` | Agent rules (docs sync, branch safety, post-change review) |

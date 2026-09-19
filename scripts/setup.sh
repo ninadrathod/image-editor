@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Full project setup — create backend venv and install Python dependencies.
-# Prefer Docker for the API if you have it; this script prepares the local (non-Docker) path.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -56,6 +55,5 @@ print(f'Seeded {len(seeded)} preset(s)')
 echo ""
 echo "Setup complete."
 echo "  Next: ./scripts/run.sh"
-echo "  Or with Docker: docker compose up --build"
 echo "  Then open http://localhost:5500"
 echo "  Subject helper: python backend/helpers/extract_subject.py photo.jpg -o subject.png"

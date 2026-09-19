@@ -8,7 +8,7 @@ Detailed architecture for the current blur MVP.
 - Validate that the input is an image (client + server).
 - Process blur on the **server** (not in the browser canvas).
 - Return binary image data and display it on the frontend.
-- Stay modular, containerized, and easy to extend with more edit endpoints.
+- Stay modular and easy to extend with more edit endpoints.
 
 ## System overview
 
@@ -22,8 +22,7 @@ Detailed architecture for the current blur MVP.
                              │ multipart/form-data (field: file)
                              ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Docker Compose service: api (port 8000)                     │
-│  FastAPI (uvicorn)                                           │
+│  Local FastAPI (uvicorn) on port 8000                        │
 │    routes/blur.py  → validate upload, orchestrate            │
 │    services/image_io.py → decode bytes ↔ Pillow / PNG encode │
 │    services/blur.py     → GaussianBlur                       │
@@ -69,7 +68,6 @@ Detailed architecture for the current blur MVP.
 
 ```
 backend/
-  Dockerfile
   requirements.txt
   helpers/
     requirements.txt     # rembg[cpu] — installed by setup.sh
@@ -144,10 +142,10 @@ Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, 
 
 - Development CORS allows all origins so any local static host can call the API. Tighten this before production deployment.
 
-## Containerization
+## Local run
 
-- `backend/Dockerfile` — slim Python image, installs deps, runs uvicorn on `0.0.0.0:8000`.
-- Root `docker-compose.yml` — builds `./backend`, maps `8000:8000`, mounts `./backend/app` for reload during development.
+- `./scripts/setup.sh` creates `backend/.venv`, installs deps, and initializes the preset DB.
+- `./scripts/run.sh` starts uvicorn on `0.0.0.0:8000` and a static frontend on port `5500`.
 
 ## Documentation responsibilities
 
