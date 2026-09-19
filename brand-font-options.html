@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brand font options — The Local Studio</title>
+    <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Bangers&family=Boogaloo&family=Bungee&family=Fredoka:wght@600;700&family=Lilita+One&family=Nunito:wght@700;800&family=Pacifico&family=Permanent+Marker&family=Righteous&family=Rubik+Mono+One&family=Titan+One&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #1a1a1a;
+        --lemon: #ffe566;
+        --cream: #fff8e7;
+        --coral: #ff6b4a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Nunito", system-ui, sans-serif;
+        background: #141414;
+        color: #f5f5f5;
+        line-height: 1.4;
+      }
+
+      .page {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+      }
+
+      h1 {
+        font-family: "Fredoka", sans-serif;
+        font-size: clamp(1.35rem, 4vw, 1.85rem);
+        margin: 0 0 0.4rem;
+      }
+
+      .intro {
+        color: #a3a3a3;
+        margin: 0 0 1.5rem;
+        max-width: 40rem;
+        font-size: 0.95rem;
+      }
+
+      .intro a {
+        color: #93c5fd;
+      }
+
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+      }
+
+      .card {
+        background: #1c1c1c;
+        border: 1px solid #333;
+        border-radius: 1rem;
+        padding: 1rem 1.1rem 1.15rem;
+      }
+
+      .card h2 {
+        margin: 0 0 0.25rem;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #a3a3a3;
+      }
+
+      .card .meta {
+        margin: 0 0 0.75rem;
+        font-size: 0.8rem;
+        color: #737373;
+      }
+
+      .header-mock {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        background: var(--lemon);
+        border: 2.5px solid var(--ink);
+        border-radius: 0.75rem;
+        padding: 0.85rem 1rem;
+        color: var(--ink);
+      }
+
+      .header-mock img {
+        width: 2.25rem;
+        height: 2.25rem;
+        flex-shrink: 0;
+      }
+
+      .brand {
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+      }
+
+      .f1 {
+        font-family: "Bangers", cursive;
+        font-size: clamp(1.55rem, 4.5vw, 2.15rem);
+        letter-spacing: 0.04em;
+        font-weight: 400;
+      }
+      .f2 {
+        font-family: "Bungee", sans-serif;
+        font-size: clamp(1.15rem, 3.5vw, 1.55rem);
+        letter-spacing: 0.02em;
+      }
+      .f3 {
+        font-family: "Titan One", cursive;
+        font-size: clamp(1.35rem, 4vw, 1.85rem);
+        font-weight: 400;
+      }
+      .f4 {
+        font-family: "Lilita One", cursive;
+        font-size: clamp(1.45rem, 4.2vw, 2rem);
+        font-weight: 400;
+        letter-spacing: 0.01em;
+      }
+      .f5 {
+        font-family: "Archivo Black", sans-serif;
+        font-size: clamp(1.2rem, 3.6vw, 1.65rem);
+        letter-spacing: -0.02em;
+      }
+      .f6 {
+        font-family: "Righteous", sans-serif;
+        font-size: clamp(1.35rem, 4vw, 1.85rem);
+        font-weight: 400;
+      }
+      .f7 {
+        font-family: "Boogaloo", cursive;
+        font-size: clamp(1.55rem, 4.5vw, 2.1rem);
+        font-weight: 400;
+      }
+      .f8 {
+        font-family: "Permanent Marker", cursive;
+        font-size: clamp(1.3rem, 3.8vw, 1.75rem);
+        font-weight: 400;
+      }
+      .f9 {
+        font-family: "Anton", sans-serif;
+        font-size: clamp(1.45rem, 4.2vw, 2rem);
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .f10 {
+        font-family: "Rubik Mono One", sans-serif;
+        font-size: clamp(0.95rem, 2.8vw, 1.25rem);
+        font-weight: 400;
+        letter-spacing: -0.03em;
+      }
+
+      .hint {
+        margin-top: 1.75rem;
+        padding: 1rem 1.1rem;
+        background: #1c1c1c;
+        border: 1px solid #333;
+        border-radius: 0.85rem;
+        color: #d4d4d4;
+        font-size: 0.9rem;
+      }
+
+      .hint strong {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Brand font options (1–10)</h1>
+      <p class="intro">
+        Larger, catchier display faces for the header name “The Local Studio”
+        (logo mark unchanged). Pick a number. Back to
+        <a href="index.html">app</a>.
+      </p>
+
+      <div class="list">
+        <article class="card" id="1">
+          <h2>1 — Bangers</h2>
+          <p class="meta">Comic-poster shout; very catchy with Pop Poster.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f1">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="2">
+          <h2>2 — Bungee</h2>
+          <p class="meta">Blocky street display; loud and geometric.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f2">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="3">
+          <h2>3 — Titan One</h2>
+          <p class="meta">Rounded heavy display; soft but bold.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f3">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="4">
+          <h2>4 — Lilita One</h2>
+          <p class="meta">Chunky cartoon title; playful and big.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f4">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="5">
+          <h2>5 — Archivo Black</h2>
+          <p class="meta">Ultra-bold sans; modern poster impact.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f5">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="6">
+          <h2>6 — Righteous</h2>
+          <p class="meta">Retro-tech curves; fun without comic caps.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f6">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="7">
+          <h2>7 — Boogaloo</h2>
+          <p class="meta">Loose rounded script-ish display; breezy.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f7">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="8">
+          <h2>8 — Permanent Marker</h2>
+          <p class="meta">Hand-marker energy; craft / zine vibe.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f8">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="9">
+          <h2>9 — Anton</h2>
+          <p class="meta">Condensed all-caps scream; sports-poster loud.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f9">The Local Studio</span>
+          </div>
+        </article>
+
+        <article class="card" id="10">
+          <h2>10 — Rubik Mono One</h2>
+          <p class="meta">Mono block letters; distinctive &amp; graphic.</p>
+          <div class="header-mock">
+            <img src="icons/logo.svg" alt="" />
+            <span class="brand f10">The Local Studio</span>
+          </div>
+        </article>
+      </div>
+
+      <p class="hint">
+        Reply with a number <strong>1–10</strong> and I’ll apply that font to the
+        brand name in the header (index + about).
+      </p>
+    </div>
+  </body>
+</html>

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,21 +17,23 @@
         theme: {
           extend: {
             fontFamily: {
-              display: ["Fraunces", "Georgia", "serif"],
-              sans: ["Outfit", "sans-serif"],
+              display: ["Fredoka", "system-ui", "sans-serif"],
+              brand: ["Lilita One", "Fredoka", "system-ui", "sans-serif"],
+              sans: ["Nunito", "system-ui", "sans-serif"],
             },
             colors: {
-              ink: "#141816",
-              mute: "#5c6560",
-              paper: "#eef0ee",
-              chalk: "#f7f8f6",
-              line: "#d2d6d3",
-              forest: {
-                DEFAULT: "#2a453c",
-                deep: "#1c312a",
+              ink: "#1a1a1a",
+              mute: "#5c5652",
+              paper: "#fff8e7",
+              chalk: "#fffef8",
+              line: "#1a1a1a",
+              coral: {
+                DEFAULT: "#ff6b4a",
+                deep: "#e85535",
               },
-              brass: "#8a734f",
-              rose: "#9a4f45",
+              sky: "#4ec5f1",
+              lemon: "#ffe566",
+              rose: "#e85535",
             },
             maxWidth: {
               stage: "84rem",
@@ -54,16 +56,14 @@
             class="flex items-center justify-center gap-2 sm:gap-2.5 min-w-0 max-w-full"
           >
             <img src="icons/logo.svg" alt="" class="w-7 h-7 sm:w-9 sm:h-9 shrink-0" />
-            <span
-              class="font-display font-semibold text-base sm:text-lg md:text-xl tracking-tight truncate"
-            >
+            <span class="site-brand font-brand text-[clamp(1.35rem,3.5vw,1.85rem)] tracking-wide truncate">
               The Local Studio
             </span>
           </a>
           <nav class="justify-self-end flex items-center shrink-0">
             <a
               href="project.html"
-              class="px-2.5 sm:px-3 py-2 text-sm font-medium text-mute hover:text-ink transition-colors"
+              class="px-2.5 sm:px-3 py-2 text-sm font-bold text-ink/70 hover:text-ink transition-colors"
             >
               About
             </a>
@@ -71,61 +71,55 @@
         </div>
       </header>
 
-      <main class="flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 pb-10 sm:pb-14">
-        <section class="hero pt-5 sm:pt-8 lg:pt-10 pb-5 sm:pb-7 text-center">
-          <p class="eyebrow text-brass font-medium tracking-[0.18em] uppercase text-[0.7rem] sm:text-xs mb-2 sm:mb-3">
-            Local image atelier
-          </p>
-          <h1
-            class="font-display font-semibold text-balance text-[clamp(1.65rem,4.5vw,2.75rem)] leading-[1.15] tracking-tight max-w-2xl mx-auto"
-          >
-            Pick a preset,
-            <span class="text-forest">upload a shot</span>
-          </h1>
-          <p class="mt-2 sm:mt-3 text-mute text-sm sm:text-base max-w-lg mx-auto text-pretty leading-relaxed">
-            Choose a look from the gallery, drop in your photo, then generate the edit on your machine.
-          </p>
-        </section>
-
+      <main class="flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 pb-10 sm:pb-14 pt-5 sm:pt-8 lg:pt-10">
         <section aria-label="Studio workspace" class="workspace studio-layout">
           <div class="studio-columns grid grid-cols-1 gap-6 sm:gap-7 lg:gap-8 items-start">
-            <!-- Left: search + preset gallery (first on mobile and desktop) -->
+            <!-- Left: intro + search + preset gallery -->
             <aside class="studio-columns__left flex flex-col gap-3 min-w-0 order-1">
+              <header class="hero mb-1 sm:mb-2 text-center">
+                <h1
+                  class="font-display font-semibold text-[clamp(1.25rem,3.2vw,1.85rem)] leading-[1.2] tracking-tight"
+                >
+                  Pick a look.
+                  <span class="text-coral">Drop a photo.</span>
+                  Boom.
+                </h1>
+                <p class="hero-sub mt-1.5 sm:mt-2 text-mute text-xs sm:text-sm font-semibold whitespace-nowrap overflow-x-auto max-w-full">
+                  Choose a preset, upload your shot, then generate the edit on your machine.
+                </p>
+              </header>
+
               <div class="studio-section-head">
                 <h2 class="font-display text-sm sm:text-base font-semibold text-ink shrink-0">
                   Presets
                 </h2>
-                <p id="preset-hint" class="section-meta text-xs text-mute truncate">
-                  Hover for original · click to select
-                </p>
               </div>
 
               <label class="sr-only" for="preset-search">Search presets by name or keyword</label>
-              <input
-                id="preset-search"
-                type="search"
-                autocomplete="off"
-                spellcheck="false"
-                maxlength="64"
-                placeholder="Search by name or keyword…"
-                class="preset-search-input"
-              />
-              <p id="search-meta" class="section-meta text-xs text-mute px-0.5 truncate">
-                Type to filter presets
-              </p>
-              <p id="search-error" class="hidden text-sm text-rose font-medium px-0.5" role="alert"></p>
+              <div class="preset-search-row preset-cols">
+                <input
+                  id="preset-search"
+                  type="search"
+                  autocomplete="off"
+                  spellcheck="false"
+                  maxlength="64"
+                  placeholder="Search by name or keyword…"
+                  class="preset-search-input"
+                />
+              </div>
+              <p id="search-error" class="hidden text-sm text-rose font-bold px-0.5" role="alert"></p>
 
               <div
                 id="preset-grid"
-                class="preset-grid"
+                class="preset-grid preset-cols"
                 role="listbox"
                 aria-label="Available presets"
               >
-                <p id="preset-loading" class="col-span-full text-sm text-mute py-8 text-center">
+                <p id="preset-loading" class="col-span-full text-sm text-mute font-semibold py-8 text-center">
                   Loading presets…
                 </p>
               </div>
-              <p id="preset-error" class="hidden text-sm text-rose font-medium px-0.5" role="alert"></p>
+              <p id="preset-error" class="hidden text-sm text-rose font-bold px-0.5" role="alert"></p>
             </aside>
 
             <!-- Right: upload + generate -->
@@ -136,13 +130,13 @@
                   <h2 class="font-display text-sm sm:text-base font-semibold text-ink shrink-0">
                     Your image
                   </h2>
-                  <p id="file-meta" class="section-meta text-xs text-mute truncate hidden"></p>
+                  <p id="file-meta" class="section-meta text-xs text-mute font-semibold truncate hidden"></p>
                 </div>
 
                 <label
                   id="drop-zone"
                   for="image-input"
-                  class="drop-zone stage stage--upload group relative flex flex-col items-center justify-center cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                  class="drop-zone stage stage--upload group relative flex flex-col items-center justify-center cursor-pointer outline-none focus-visible:shadow-[3px_3px_0_#ff6b4a]"
                 >
                   <input
                     id="image-input"
@@ -163,25 +157,54 @@
                       <img src="icons/upload.svg" alt="" class="w-7 h-7 sm:w-8 sm:h-8" />
                     </span>
                     <div>
-                      <p class="font-medium text-ink text-sm sm:text-base">
+                      <p class="font-bold text-ink text-sm sm:text-base">
                         Drop an image, or browse
                       </p>
-                      <p class="mt-1 text-xs sm:text-sm text-mute">
+                      <p class="mt-1 text-xs sm:text-sm text-mute font-semibold">
                         PNG, JPG, WEBP, GIF
                       </p>
                     </div>
                   </div>
                 </label>
-                <p id="file-error" class="hidden text-sm text-rose font-medium px-0.5" role="alert"></p>
+                <p id="file-error" class="hidden text-sm text-rose font-bold px-0.5" role="alert"></p>
               </div>
 
-              <!-- Result + actions -->
+              <!-- Actions between upload and result -->
+              <div
+                class="actions actions-bar flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end"
+              >
+                <p
+                  id="api-error"
+                  class="hidden text-sm text-rose font-bold text-center sm:text-left sm:mr-auto break-words"
+                  role="alert"
+                ></p>
+                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <a
+                    id="download-btn"
+                    href="#"
+                    download="edited-image.png"
+                    class="btn btn-ghost hidden w-full sm:w-auto text-center"
+                  >
+                    Download
+                  </a>
+                  <button
+                    id="generate-btn"
+                    type="button"
+                    disabled
+                    class="btn btn-primary font-display w-full sm:w-auto sm:min-w-[11rem]"
+                  >
+                    Generate edit
+                  </button>
+                </div>
+              </div>
+
+              <!-- Result -->
               <div class="flex flex-col gap-3">
                 <div class="studio-section-head">
                   <h2 class="font-display text-sm sm:text-base font-semibold text-ink shrink-0">
                     Edited result
                   </h2>
-                  <span id="selected-preset-label" class="section-meta text-xs text-mute tracking-wide truncate">
+                  <span id="selected-preset-label" class="section-meta text-xs text-mute font-semibold tracking-wide truncate">
                     No preset selected
                   </span>
                 </div>
@@ -189,7 +212,7 @@
                 <div class="stage stage--result relative overflow-hidden">
                   <p
                     id="result-placeholder"
-                    class="absolute inset-0 flex items-center justify-center text-mute text-sm px-5 sm:px-6 text-center"
+                    class="absolute inset-0 flex items-center justify-center text-mute text-sm font-semibold px-5 sm:px-6 text-center"
                   >
                     Your edited image will appear here
                   </p>
@@ -200,38 +223,10 @@
                   />
                   <div
                     id="loading"
-                    class="hidden absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-chalk/85 backdrop-blur-[2px]"
+                    class="hidden absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-chalk/90"
                   >
                     <div class="spinner" aria-hidden="true"></div>
-                    <span class="text-sm font-medium text-forest-deep">Generating edit…</span>
-                  </div>
-                </div>
-
-                <div
-                  class="actions actions-bar flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end"
-                >
-                  <p
-                    id="api-error"
-                    class="hidden text-sm text-rose font-medium text-center sm:text-left sm:mr-auto break-words"
-                    role="alert"
-                  ></p>
-                  <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <a
-                      id="download-btn"
-                      href="#"
-                      download="edited-image.png"
-                      class="btn btn-ghost hidden w-full sm:w-auto text-center"
-                    >
-                      Download
-                    </a>
-                    <button
-                      id="generate-btn"
-                      type="button"
-                      disabled
-                      class="btn btn-primary w-full sm:w-auto sm:min-w-[11rem]"
-                    >
-                      Generate edit
-                    </button>
+                    <span class="text-sm font-bold text-ink">Generating edit…</span>
                   </div>
                 </div>
               </div>
@@ -242,10 +237,10 @@
 
       <footer class="site-footer mt-auto">
         <div
-          class="mx-auto w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-mute"
+          class="mx-auto w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-mute font-semibold"
         >
           <span>The Local Studio</span>
-          <a href="project.html" class="hover:text-ink transition-colors">Project overview</a>
+          <a href="project.html" class="hover:text-ink transition-colors font-bold">Project overview</a>
         </div>
       </footer>
     </div>

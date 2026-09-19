@@ -40,9 +40,9 @@ Detailed architecture for the preset-based local image editor.
 
 ### Entry points
 
-- `index.html` — full-width two-column UI (Tailwind via CDN, custom atmosphere in `css/styles.css`):
+- `index.html` — full-width two-column UI (Tailwind via CDN, Pop Poster theme in `css/styles.css` — Lilita One brand / Fredoka+Nunito UI, coral CTA, lemon header):
   - **Left (~65%):** search input + preset grid (post-edit preview + name; hover/focus reveals pre-edit original); search reloads the grid from DB name/keyword matches.
-  - **Right (~35%):** file upload / original preview, then edited result + **Generate edit** / **Download**.
+  - **Right (~35%):** file upload / original preview, then **Generate edit** / **Download**, then edited result.
 - `script.js` — wires gallery load, debounced search (filters gallery), selection, file pick/drag-drop, generate button.
 - `js/image.js` — `isImageFile`, object URL create/revoke.
 - `js/api.js` — `searchPresets(baseUrl, query)` → match list; `applyPreset(baseUrl, presetName, file)` → `Blob` (also retains `blurImage` for `/api/blur`).

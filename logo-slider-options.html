@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slider logo variants — The Local Studio</title>
+    <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #1a1a1a;
+        --lemon: #ffe566;
+        --cream: #fff8e7;
+        --coral: #ff6b4a;
+        --red: #e53935;
+        --blue: #1e88e5;
+        --green: #43a047;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Nunito", system-ui, sans-serif;
+        background: #141414;
+        color: #f5f5f5;
+        line-height: 1.4;
+      }
+
+      .page {
+        max-width: 64rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+      }
+
+      h1 {
+        font-family: "Fredoka", sans-serif;
+        font-size: clamp(1.4rem, 4vw, 1.9rem);
+        margin: 0 0 0.4rem;
+      }
+
+      .intro {
+        color: #a3a3a3;
+        margin: 0 0 1.5rem;
+        max-width: 42rem;
+        font-size: 0.95rem;
+      }
+
+      .intro a {
+        color: #93c5fd;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      @media (min-width: 640px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (min-width: 960px) {
+        .grid {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+      }
+
+      .card {
+        background: #1c1c1c;
+        border: 1px solid #333;
+        border-radius: 1rem;
+        padding: 1rem 1rem 1.1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .card h2 {
+        margin: 0;
+        font-family: "Fredoka", sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .card p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #a3a3a3;
+      }
+
+      .tile {
+        background: var(--lemon);
+        border: 2.5px solid var(--ink);
+        border-radius: 0.85rem;
+        padding: 0.65rem 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        align-self: flex-start;
+      }
+
+      .tile.on-cream {
+        background: var(--cream);
+      }
+
+      .tile.on-ink {
+        background: #0a0a0a;
+      }
+
+      .tile.on-ink span {
+        color: #fff;
+      }
+
+      .tile span {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+
+      .mark {
+        display: block;
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+      }
+
+      .hint {
+        margin-top: 1.75rem;
+        padding: 1rem 1.1rem;
+        background: #1c1c1c;
+        border: 1px solid #333;
+        border-radius: 0.85rem;
+        color: #d4d4d4;
+        font-size: 0.9rem;
+      }
+
+      .hint strong {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Slider logo — 10 background options</h1>
+      <p class="intro">
+        Same adjust-sliders mark. Dials are always
+        <strong style="color: #e53935">red</strong>,
+        <strong style="color: #1e88e5">blue</strong>,
+        <strong style="color: #43a047">green</strong>
+        (left → right). Backgrounds are not sky-blue. Pick a number. Back to
+        <a href="logo-options.html">all logos</a>
+        ·
+        <a href="index.html">app</a>.
+      </p>
+
+      <div class="grid">
+        <!-- A Lemon -->
+        <article class="card" id="a">
+          <h2>A — Lemon</h2>
+          <p>Sunny poster yellow tile.</p>
+          <div class="tile">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#FFE566" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- B Cream -->
+        <article class="card" id="b">
+          <h2>B — Cream</h2>
+          <p>Soft paper / chalk plate.</p>
+          <div class="tile on-cream">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#FFF8E7" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- C Coral -->
+        <article class="card" id="c">
+          <h2>C — Coral</h2>
+          <p>Brand coral punch.</p>
+          <div class="tile">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#FF6B4A" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- D Ink -->
+        <article class="card" id="d">
+          <h2>D — Ink</h2>
+          <p>Dark comic plate; dials pop.</p>
+          <div class="tile on-ink">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#1A1A1A" stroke="#FFE566" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#FFF8E7" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#FFF8E7" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#FFF8E7" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#FFF8E7" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#FFF8E7" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#FFF8E7" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- E Mint -->
+        <article class="card" id="e">
+          <h2>E — Mint</h2>
+          <p>Soft green wash (not dial green).</p>
+          <div class="tile">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#B8F0C8" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- F Peach -->
+        <article class="card" id="f">
+          <h2>F — Peach</h2>
+          <p>Warm blush background.</p>
+          <div class="tile">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#FFC4B0" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- G Lilac -->
+        <article class="card" id="g">
+          <h2>G — Lilac</h2>
+          <p>Soft violet (keeps dials as RGB).</p>
+          <div class="tile">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#D4C4F5" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- H White -->
+        <article class="card" id="h">
+          <h2>H — White</h2>
+          <p>Clean sticker on ink outline.</p>
+          <div class="tile on-cream">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- I Mustard -->
+        <article class="card" id="i">
+          <h2>I — Mustard</h2>
+          <p>Deeper gold than lemon.</p>
+          <div class="tile">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#F0C040" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+
+        <!-- J Hot pink -->
+        <article class="card" id="j">
+          <h2>J — Hot pink</h2>
+          <p>Loud poster pink (not dial red).</p>
+          <div class="tile">
+            <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect width="40" height="40" rx="10" fill="#FF4D8D" stroke="#1A1A1A" stroke-width="2.5"/>
+              <line x1="12" y1="12" x2="12" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="12" x2="20" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="28" y1="12" x2="28" y2="28" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="18" r="3.2" fill="#E53935" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="20" cy="23" r="3.2" fill="#1E88E5" stroke="#1A1A1A" stroke-width="1.75"/>
+              <circle cx="28" cy="15" r="3.2" fill="#43A047" stroke="#1A1A1A" stroke-width="1.75"/>
+            </svg>
+            <span>The Local Studio</span>
+          </div>
+        </article>
+      </div>
+
+      <p class="hint">
+        Reply with a letter <strong>A–J</strong> and I’ll apply that slider logo as the app mark + favicon.
+      </p>
+    </div>
+  </body>
+</html>
