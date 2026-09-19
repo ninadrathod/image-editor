@@ -1,12 +1,13 @@
 /**
- * Frontend entry — preset gallery, upload, and apply-preset generate flow.
+ * Frontend entry — preset gallery, keyword search, upload, and apply-preset generate flow.
  * All session state is in-memory; a page refresh clears upload + result.
  */
-import { applyPreset } from "./js/api.js";
+import { applyPreset, searchPresets } from "./js/api.js";
 import { isImageFile, createObjectUrl, revokeObjectUrl } from "./js/image.js";
 
 const API_BASE = "http://localhost:8000";
 const PRESETS_MANIFEST = "previews/presets.json";
+const SEARCH_DEBOUNCE_MS = 180;
 
 /** Allowed relative paths for gallery thumbnails (no schemes / traversal). */
 const PREVIEW_PATH_RE =
@@ -21,6 +22,9 @@ const els = {
   presetError: document.getElementById("preset-error"),
   presetHint: document.getElementById("preset-hint"),
   selectedPresetLabel: document.getElementById("selected-preset-label"),
+  presetSearch: document.getElementById("preset-search"),
+  searchMeta: document.getElementById("search-meta"),
+  searchError: document.getElementById("search-error"),
   input: document.getElementById("image-input"),
   dropZone: document.getElementById("drop-zone"),
   uploadPrompt: document.getElementById("upload-prompt"),
@@ -47,6 +51,12 @@ let editedUrl = null;
 let generateGeneration = 0;
 /** Nested dragenter counter so child nodes don't flicker the drop highlight. */
 let dragDepth = 0;
+/** @type {Array<{ preset_name: string, post_edit_image: string }>} */
+let allGalleryPresets = [];
+/** Bumped on each search keystroke — ignores stale responses. */
+let searchGeneration = 0;
+/** @type {ReturnType<typeof setTimeout>|null} */
+let searchDebounceTimer = null;
 
 function formatPresetLabel(name) {
   return String(name || "")
@@ -141,11 +151,14 @@ function setSelectedPreset(name) {
   clearError(els.apiError);
   resetResult();
 
+  /** @type {HTMLElement|null} */
+  let activeCard = null;
   const cards = els.presetGrid.querySelectorAll(".preset-card");
   cards.forEach((card) => {
     const isActive = card.dataset.presetName === name;
     card.classList.toggle("preset-card--selected", isActive);
     card.setAttribute("aria-selected", isActive ? "true" : "false");
+    if (isActive) activeCard = card;
   });
 
   if (name) {
@@ -154,6 +167,7 @@ function setSelectedPreset(name) {
     els.selectedPresetLabel.title = name;
     els.presetHint.textContent = `Selected: ${label}`;
     els.presetGrid.setAttribute("aria-activedescendant", `preset-${name}`);
+    activeCard?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
   } else {
     els.selectedPresetLabel.textContent = "No preset selected";
     els.selectedPresetLabel.removeAttribute("title");
@@ -264,7 +278,9 @@ function createPresetCard(preset) {
   button.className = "preset-card";
   button.dataset.presetName = name;
   button.setAttribute("role", "option");
-  button.setAttribute("aria-selected", "false");
+  const isSelected = name === selectedPresetName;
+  button.setAttribute("aria-selected", isSelected ? "true" : "false");
+  if (isSelected) button.classList.add("preset-card--selected");
   button.setAttribute("aria-label", `Select preset ${label}`);
 
   const media = document.createElement("span");
@@ -286,6 +302,31 @@ function createPresetCard(preset) {
   return button;
 }
 
+/**
+ * Rebuild the preset preview grid from the given list.
+ * @param {Array<{ preset_name: string, post_edit_image: string }>} presets
+ * @param {{ emptyMessage?: string }} [options]
+ */
+function renderPresetGrid(presets, options = {}) {
+  els.presetGrid.replaceChildren();
+
+  if (!presets.length) {
+    const empty = document.createElement("p");
+    empty.className = "col-span-full text-sm text-mute py-8 text-center";
+    empty.textContent = options.emptyMessage || "No presets to show.";
+    els.presetGrid.appendChild(empty);
+    return;
+  }
+
+  for (const preset of presets) {
+    els.presetGrid.appendChild(createPresetCard(preset));
+  }
+
+  if (selectedPresetName) {
+    els.presetGrid.setAttribute("aria-activedescendant", `preset-${selectedPresetName}`);
+  }
+}
+
 async function loadPresets() {
   clearError(els.presetError);
 
@@ -299,7 +340,7 @@ async function loadPresets() {
     }
 
     els.presetLoading?.remove();
-    els.presetGrid.replaceChildren();
+    allGalleryPresets = [];
 
     let skipped = 0;
     for (const preset of presets) {
@@ -307,23 +348,80 @@ async function loadPresets() {
         skipped += 1;
         continue;
       }
-      els.presetGrid.appendChild(createPresetCard(preset));
+      allGalleryPresets.push({
+        preset_name: preset.preset_name,
+        post_edit_image: preset.post_edit_image,
+      });
     }
 
-    if (!els.presetGrid.children.length) {
+    if (!allGalleryPresets.length) {
       throw new Error(
         skipped
           ? "No valid presets found (entries failed name or image-path checks)."
           : "No valid presets found in the gallery.",
       );
     }
+
+    renderPresetGrid(allGalleryPresets);
+    if (els.searchMeta) els.searchMeta.textContent = "Type to filter presets";
   } catch (err) {
     els.presetLoading?.remove();
+    allGalleryPresets = [];
     showError(
       els.presetError,
       err.message || "Could not load the preset gallery.",
     );
   }
+}
+
+/**
+ * @param {string[]} matchNames
+ */
+function applySearchFilter(matchNames) {
+  const allowed = new Set(matchNames.filter((n) => isValidPresetName(n)));
+  const filtered = allGalleryPresets.filter((p) => allowed.has(p.preset_name));
+  renderPresetGrid(filtered, { emptyMessage: "No presets match that search." });
+  if (els.searchMeta) {
+    els.searchMeta.textContent = `${filtered.length} match${filtered.length === 1 ? "" : "es"}`;
+  }
+}
+
+function clearSearchFilter() {
+  renderPresetGrid(allGalleryPresets);
+  if (els.searchMeta) els.searchMeta.textContent = "Type to filter presets";
+}
+
+async function runPresetSearch(query) {
+  if (!els.presetSearch) return;
+
+  const q = String(query || "").trim();
+  const token = ++searchGeneration;
+  clearError(els.searchError);
+
+  if (!q) {
+    clearSearchFilter();
+    return;
+  }
+
+  try {
+    const matches = await searchPresets(API_BASE, q);
+    if (token !== searchGeneration) return;
+    applySearchFilter(matches.map((m) => m.preset_name));
+  } catch (err) {
+    if (token !== searchGeneration) return;
+    clearSearchFilter();
+    showError(els.searchError, err.message || "Preset search failed.");
+  }
+}
+
+function schedulePresetSearch() {
+  if (!els.presetSearch) return;
+  const value = els.presetSearch.value;
+  if (searchDebounceTimer != null) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null;
+    runPresetSearch(value);
+  }, SEARCH_DEBOUNCE_MS);
 }
 
 /* —— Event listeners —— */
@@ -333,6 +431,10 @@ els.input.addEventListener("change", () => {
 });
 
 els.generateBtn.addEventListener("click", handleGenerate);
+
+if (els.presetSearch) {
+  els.presetSearch.addEventListener("input", schedulePresetSearch);
+}
 
 els.dropZone.addEventListener("dragenter", (e) => {
   e.preventDefault();

@@ -6,6 +6,7 @@ from .db_ops import (
     get_preset_by_id,
     get_preset_by_name,
     list_presets,
+    search_presets_by_keyword,
     seed_default_presets,
     update_preset,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "get_preset_by_name",
     "init_db",
     "list_presets",
+    "search_presets_by_keyword",
     "seed_default_presets",
     "update_preset",
 ]

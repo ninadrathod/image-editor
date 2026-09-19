@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.blur import router as blur_router
 from app.routes.preset import router as preset_router
+from app.routes.search import router as search_router
 
 app = FastAPI(
     title="The Local Studio API",
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(blur_router, prefix="/api")
 app.include_router(preset_router, prefix="/api")
+app.include_router(search_router, prefix="/api")
 
 
 @app.get("/health")

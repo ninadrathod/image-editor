@@ -117,6 +117,33 @@ def list_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
     return [_row_to_dict(row) for row in rows]
 
 
+def search_presets_by_keyword(
+    query: str,
+    *,
+    db_path: Path = DB_PATH,
+) -> list[dict[str, Any]]:
+    """
+    Return presets whose `preset_name` or keywords contain `query`
+    (case-insensitive substring). Empty/whitespace query returns [].
+    """
+    needle = (query or "").strip().lower()
+    if not needle:
+        return []
+
+    matches: list[dict[str, Any]] = []
+    for row in list_presets(db_path=db_path):
+        name = str(row.get("preset_name") or "").lower()
+        name_spaced = name.replace("_", " ")
+        keywords = row.get("keywords") or []
+        if (
+            needle in name
+            or needle in name_spaced
+            or any(needle in str(kw).lower() for kw in keywords)
+        ):
+            matches.append(row)
+    return matches
+
+
 def update_preset(
     preset_id: int,
     *,

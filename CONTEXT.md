@@ -53,13 +53,16 @@ Repo: https://github.com/ninadrathod/local-studio
 - Health check: `GET /health`
 - Blur endpoint: `POST /api/blur` (multipart field name: `file`)
 - Apply-preset endpoint: `POST /api/apply-preset` (multipart fields: `preset_name`, `file`) → PNG
+- Preset search: `GET /api/presets/search?q=…` → JSON list of `{ preset_name, keywords }` (matches name or keywords)
 - Upload caps (blur + apply-preset): 20 MiB body, max side 8000 px / 25M pixels; preset JSON paths must stay under `backend/presets/`
 - Apply-preset concurrency: 1 in-flight job (extra requests get **503**)
 
 ## Current scope
 
-- Preset gallery (left): loads `previews/presets.json`, shows post-edit thumbnails; click to select
-- Image upload (right): client-side type check + preview
+- Preset gallery (left, ~65% width on desktop): search + post-edit thumbnails from `previews/presets.json`; click to select
+- Search filters the gallery in place via realtime `GET /api/presets/search?q=…` (DB `preset_name` + `keywords`)
+- Image upload (right, ~35% width on desktop): client-side type check + preview
+- Studio UI uses the full browser width (no max-content cap on `index.html`)
 - Generate edit when both preset + file are set → `POST /api/apply-preset` → result + download
 - Session state is in-memory only (refresh clears upload + edited result)
 - Gallery only accepts `preset_name` + relative `previews/pre-edit|post-edit/…` paths from `presets.json`

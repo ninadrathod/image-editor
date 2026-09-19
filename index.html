@@ -46,18 +46,24 @@
     <div class="page-shell min-h-dvh flex flex-col">
       <header class="site-header shrink-0">
         <div
-          class="mx-auto w-full max-w-stage px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between gap-4"
+          class="mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-5 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3"
         >
-          <a href="index.html" class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <img src="icons/logo.svg" alt="" class="w-8 h-8 sm:w-9 sm:h-9 shrink-0" />
-            <span class="font-display font-semibold text-lg sm:text-xl tracking-tight truncate">
+          <div aria-hidden="true"></div>
+          <a
+            href="index.html"
+            class="flex items-center justify-center gap-2 sm:gap-2.5 min-w-0 max-w-full"
+          >
+            <img src="icons/logo.svg" alt="" class="w-7 h-7 sm:w-9 sm:h-9 shrink-0" />
+            <span
+              class="font-display font-semibold text-base sm:text-lg md:text-xl tracking-tight truncate"
+            >
               The Local Studio
             </span>
           </a>
-          <nav class="flex items-center gap-1 sm:gap-2 shrink-0">
+          <nav class="justify-self-end flex items-center shrink-0">
             <a
               href="project.html"
-              class="px-3 py-2 text-sm font-medium text-mute hover:text-ink transition-colors"
+              class="px-2.5 sm:px-3 py-2 text-sm font-medium text-mute hover:text-ink transition-colors"
             >
               About
             </a>
@@ -65,26 +71,26 @@
         </div>
       </header>
 
-      <main class="flex-1 mx-auto w-full max-w-stage px-4 sm:px-6 lg:px-8 pb-10 sm:pb-14">
-        <section class="hero pt-5 sm:pt-8 lg:pt-10 pb-5 sm:pb-7">
+      <main class="flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 pb-10 sm:pb-14">
+        <section class="hero pt-5 sm:pt-8 lg:pt-10 pb-5 sm:pb-7 text-center">
           <p class="eyebrow text-brass font-medium tracking-[0.18em] uppercase text-[0.7rem] sm:text-xs mb-2 sm:mb-3">
             Local image atelier
           </p>
           <h1
-            class="font-display font-semibold text-balance text-[clamp(1.65rem,4.5vw,2.75rem)] leading-[1.15] tracking-tight max-w-2xl"
+            class="font-display font-semibold text-balance text-[clamp(1.65rem,4.5vw,2.75rem)] leading-[1.15] tracking-tight max-w-2xl mx-auto"
           >
             Pick a preset,
             <span class="text-forest">upload a shot</span>
           </h1>
-          <p class="mt-2 sm:mt-3 text-mute text-sm sm:text-base max-w-lg text-pretty leading-relaxed">
+          <p class="mt-2 sm:mt-3 text-mute text-sm sm:text-base max-w-lg mx-auto text-pretty leading-relaxed">
             Choose a look from the gallery, drop in your photo, then generate the edit on your machine.
           </p>
         </section>
 
         <section aria-label="Studio workspace" class="workspace studio-layout">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-7 lg:gap-8 items-start">
-            <!-- Left: preset gallery (first on mobile, left on desktop) -->
-            <aside class="lg:col-span-5 flex flex-col gap-3 min-w-0 order-1">
+          <div class="studio-columns grid grid-cols-1 gap-6 sm:gap-7 lg:gap-8 items-start">
+            <!-- Left: search + preset gallery (first on mobile and desktop) -->
+            <aside class="studio-columns__left flex flex-col gap-3 min-w-0 order-1">
               <div class="studio-section-head">
                 <h2 class="font-display text-sm sm:text-base font-semibold text-ink shrink-0">
                   Presets
@@ -93,6 +99,21 @@
                   Click a preview to select
                 </p>
               </div>
+
+              <label class="sr-only" for="preset-search">Search presets by name or keyword</label>
+              <input
+                id="preset-search"
+                type="search"
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="64"
+                placeholder="Search by name or keyword…"
+                class="preset-search-input"
+              />
+              <p id="search-meta" class="section-meta text-xs text-mute px-0.5 truncate">
+                Type to filter presets
+              </p>
+              <p id="search-error" class="hidden text-sm text-rose font-medium px-0.5" role="alert"></p>
 
               <div
                 id="preset-grid"
@@ -108,7 +129,7 @@
             </aside>
 
             <!-- Right: upload + generate -->
-            <div class="lg:col-span-7 flex flex-col gap-5 sm:gap-6 min-w-0 order-2">
+            <div class="studio-columns__right flex flex-col gap-5 sm:gap-6 min-w-0 order-2">
               <!-- Upload -->
               <div class="flex flex-col gap-3">
                 <div class="studio-section-head">
@@ -221,7 +242,7 @@
 
       <footer class="site-footer mt-auto">
         <div
-          class="mx-auto max-w-stage px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-mute"
+          class="mx-auto w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-mute"
         >
           <span>The Local Studio</span>
           <a href="project.html" class="hover:text-ink transition-colors">Project overview</a>
