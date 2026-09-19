@@ -8,8 +8,6 @@ from typing import Sequence
 
 from PIL import Image, ImageEnhance, ImageFilter
 
-from extract_subject import extract_subject as rembg_extract_subject
-
 
 def _as_rgba(image: Image.Image) -> Image.Image:
     return image.convert("RGBA")
@@ -26,6 +24,8 @@ def extract_subject_layers(image: Image.Image) -> tuple[Image.Image, Image.Image
     Background replaces the subject region with a heavy blur so later filters
     don't double the original subject underneath the cutout.
     """
+    from extract_subject import extract_subject as rembg_extract_subject
+
     original = _as_rgb(image)
     subject = rembg_extract_subject(original)
     mask = subject.getchannel("A")

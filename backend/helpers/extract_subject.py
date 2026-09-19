@@ -18,16 +18,28 @@ import sys
 from pathlib import Path
 
 from PIL import Image
-from rembg import new_session, remove
 
 # u2net (~176MB) — much smaller than rembg's default bria-rmbg (~1GB)
 DEFAULT_MODEL = "u2net"
 _SESSION = None
 
 
+def _rembg():
+    """Lazy import so unit tests can load helpers without rembg installed."""
+    try:
+        from rembg import new_session, remove
+    except ImportError as exc:
+        raise RuntimeError(
+            "rembg is required for subject extraction. "
+            "Install with: pip install -r backend/helpers/requirements.txt"
+        ) from exc
+    return new_session, remove
+
+
 def _session(model_name: str = DEFAULT_MODEL):
     global _SESSION
     if _SESSION is None:
+        new_session, _ = _rembg()
         _SESSION = new_session(model_name)
     return _SESSION
 
@@ -36,6 +48,7 @@ def extract_subject(image: Image.Image, *, model_name: str = DEFAULT_MODEL) -> I
     """
     Return an RGBA image with the main subject kept and background transparent.
     """
+    _, remove = _rembg()
     rgb = image.convert("RGB") if image.mode not in ("RGB", "RGBA") else image
     cutout = remove(rgb, session=_session(model_name))
     if not isinstance(cutout, Image.Image):
