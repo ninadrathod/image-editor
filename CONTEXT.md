@@ -25,7 +25,8 @@ Repo: https://github.com/ninadrathod/image-editor
 | `docker-compose.yml` | Runs the API on port 8000 |
 | `README.md` | Setup & run only |
 | `ARCHITECTURE.md` | How the system works |
-| `.cursor/rules/` | Agent rules (docs sync, branch safety) |
+| `.cursor/rules/` | Agent rules (docs sync, branch safety, post-change review) |
+| `.cursor/skills/cleanup-after-push/` | After push: checkout main, pull, delete local feature branch |
 
 ## Key conventions
 
