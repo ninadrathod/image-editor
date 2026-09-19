@@ -297,8 +297,23 @@ html:has(.studio-page) {
   font-size: clamp(0.75rem, 1.8vh, 0.88rem);
 }
 
+.studio-page .preset-reset-btn {
+  width: clamp(2.1rem, 5vh, 2.55rem);
+}
+
+.studio-page .preset-reset-btn__icon {
+  width: clamp(0.95rem, 2.2vh, 1.1rem);
+  height: clamp(0.95rem, 2.2vh, 1.1rem);
+}
+
 .studio-page .preset-cols {
   gap: clamp(0.4rem, 1vw, 0.75rem);
+}
+
+.studio-page .preset-search-row.preset-cols {
+  /* Keep search column aligned with cards while the gallery scrolls */
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .studio-page .preset-grid {
@@ -308,6 +323,7 @@ html:has(.studio-page) {
   overflow-y: auto;
   overscroll-behavior: contain;
   align-content: start;
+  scrollbar-gutter: stable;
 }
 
 .studio-page .preset-card {
@@ -459,9 +475,18 @@ html:has(.studio-page) {
   .preset-cols {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
+  }
+
+  .preset-grid.preset-cols,
+  .preset-search-row.preset-cols {
     /* Match gallery scrollbar gutter so search cell = card cell */
     padding-right: 0.35rem;
     scrollbar-gutter: stable;
+  }
+
+  .preset-search-row.preset-cols {
+    /* overflow auto so scrollbar-gutter reserves the same track as the grid */
+    overflow-y: auto;
   }
 
   .preset-grid {
@@ -514,7 +539,7 @@ html:has(.studio-page) {
   border: 2.5px solid var(--ink);
   transition:
     border-color 0.2s var(--ease),
-    box-shadow 0.2s var(--ease);
+    box-shadow 0.25s var(--ease);
 }
 
 .preset-card__media img,
@@ -549,8 +574,21 @@ html:has(.studio-page) {
 }
 
 .preset-card--selected .preset-card__media {
-  border-color: var(--ink);
-  box-shadow: 3px 3px 0 var(--coral);
+  border-color: var(--coral);
+  box-shadow:
+    3px 3px 0 var(--coral),
+    0 0 0 3px color-mix(in srgb, var(--coral) 42%, transparent),
+    0 0 16px 2px color-mix(in srgb, var(--coral) 55%, transparent),
+    0 0 32px 4px color-mix(in srgb, var(--coral) 28%, transparent);
+}
+
+.preset-card--selected:hover .preset-card__media,
+.preset-card--selected:focus-visible .preset-card__media {
+  box-shadow:
+    3px 3px 0 var(--coral),
+    0 0 0 3px color-mix(in srgb, var(--coral) 50%, transparent),
+    0 0 18px 3px color-mix(in srgb, var(--coral) 62%, transparent),
+    0 0 36px 6px color-mix(in srgb, var(--coral) 32%, transparent);
 }
 
 .preset-card__name {
@@ -593,11 +631,11 @@ html:has(.studio-page) {
   text-align: right;
 }
 
-/* Keyword search — one gallery column wide (via .preset-cols) */
+/* Keyword search — one gallery column wide (matches preview card) */
 .preset-search-input {
+  grid-column: 1;
   width: 100%;
   min-width: 0;
-  grid-column: 1;
   margin: 0;
   padding: 0.7rem 0.95rem;
   border-radius: calc(var(--radius) - 0.2rem);
@@ -625,6 +663,57 @@ html:has(.studio-page) {
 
 .preset-search-input:focus {
   box-shadow: 3px 3px 0 var(--coral);
+}
+
+.preset-reset-btn {
+  grid-column: 2;
+  justify-self: start;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  border-radius: calc(var(--radius) - 0.2rem);
+  border: 2.5px solid var(--ink);
+  background: var(--chalk);
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    background 0.2s var(--ease),
+    opacity 0.2s var(--ease);
+}
+
+.preset-reset-btn__icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+  pointer-events: none;
+}
+
+.preset-reset-btn:hover:not(:disabled) {
+  box-shadow: 2px 2px 0 var(--sky);
+}
+
+.preset-reset-btn:focus-visible {
+  box-shadow: 3px 3px 0 var(--coral);
+}
+
+.preset-reset-btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+
+.preset-reset-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 @keyframes rise {
