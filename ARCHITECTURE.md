@@ -78,8 +78,13 @@ backend/
     services/
       blur.py            # is_allowed_image, apply_blur
       image_io.py        # load_image, save_png_bytes
-```
 
+test-suite/              # pytest unit tests for services only (not routes/HTTP)
+  conftest.py            # adds backend/ to sys.path
+  requirements.txt       # pytest
+  test_blur.py
+  test_image_io.py
+```
 ### API contracts
 
 | Method | Path | Request | Response |
@@ -113,8 +118,9 @@ Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, 
 | `project.html` | Advertise-style overview; CTAs link to GitHub fork |
 | `scripts/setup.sh` | One-command local bootstrap |
 | `scripts/run.sh` | One-command API + frontend start |
+| `test-suite/` | Service-function unit tests (pytest); CI via `.github/workflows/test-suite.yml` |
 
-When features change, update these in the same change set (enforced by `.cursor/rules/docs-and-branch-safety.mdc`).
+When features change, update these in the same change set (enforced by `.cursor/rules/docs-and-branch-safety.mdc`). When `backend/app/services/` change, update matching `test-suite/` tests **only where necessary**.
 
 ## Helper scripts
 
@@ -126,6 +132,13 @@ When features change, update these in the same change set (enforced by `.cursor/
 New edits should follow the same pattern:
 
 1. Add a service function under `backend/app/services/`.
-2. Add a thin route under `backend/app/routes/` and mount it from `main.py`.
-3. Add a small client helper under `js/` and wire it from `script.js`.
-4. Refresh docs + `project.html` if user-visible behavior changed.
+2. Add or update unit tests under `test-suite/` for that service (not the HTTP route).
+3. Add a thin route under `backend/app/routes/` and mount it from `main.py`.
+4. Add a small client helper under `js/` and wire it from `script.js`.
+5. Refresh docs + `project.html` if user-visible behavior changed.
+
+### Testing
+
+- Scope: **service functions only** (`app.services.*`). Do not exercise FastAPI routes here.
+- Local: after `./scripts/setup.sh`, install `test-suite/requirements.txt` into the same venv, then `pytest test-suite/ -v`.
+- CI: `.github/workflows/test-suite.yml` runs the same suite on pull requests (and pushes to `main`).

@@ -25,6 +25,7 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 | `project.html` | Public pitch, diagram, features, or GitHub fork CTA should reflect the new story |
 | `scripts/setup.sh` | Install/bootstrap steps change (deps, venv, Docker prep, env files) |
 | `scripts/run.sh` | How the app is started changes (ports, processes, commands, health checks) |
+| `test-suite/` | Backend **service-function** behavior, contracts, or coverage expectations change (not HTTP/API tests) |
 
 ### Rules of thumb
 
@@ -32,6 +33,7 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 - `README.md` must remain **instructions only** (clone, install/run, stop). No architecture essays.
 - `project.html` stays advertise-level (short, visual); CTAs should send users to **fork the GitHub repo** and run locally — do not link to a hosted app.
 - Keep `scripts/setup.sh` and `scripts/run.sh` aligned with `README.md` so one-command setup/run stays correct.
+- When you change `backend/app/services/` (or add a new service module), update or add matching tests under `test-suite/` in the same change set — **only where necessary**.
 - If a change is purely internal with zero user/setup/API impact, skip doc/script updates — but when in doubt, update `CONTEXT.md`, `ARCHITECTURE.md`, and the scripts if startup changed.
 
 ## After all changes are finished — bug & security review
@@ -55,4 +57,5 @@ Skip this review only for pure doc/typo/rule-text edits with no product or scrip
 - Skip the branch check because the change “is small”.
 - Leave docs or scripts describing endpoints, ports, or flows that no longer exist.
 - Put deep architecture detail into `README.md`.
+- Change `backend/app/services/` without updating `test-suite/` when those changes need test coverage.
 - End a feature/fix turn without the post-change bug + security listing (when the skip condition does not apply).
