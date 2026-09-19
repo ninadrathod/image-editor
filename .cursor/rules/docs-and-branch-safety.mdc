@@ -1,5 +1,5 @@
 ---
-description: Branch safety, docs sync, and lightweight post-change review (Bugbot optional)
+description: Branch safety, docs sync, and lightweight post-change review (no Bugbot)
 alwaysApply: true
 ---
 
@@ -43,19 +43,15 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 
 Once the requested work (code + required doc/script updates) is **complete**, review **branch changes** vs `main`/`master` (committed + uncommitted) before ending the turn.
 
-### When to skip or lighten review
+### When to skip review
 
 - **Skip entirely** for pure doc/typo/rule-text edits with no product or script behavior change.
-- **Skip Bugbot** (do not launch it) when any of these apply:
-  - User says to skip Bugbot / skip review / no subagents
-  - Change is small or service-only (e.g. one helper under `backend/app/services/`, prompt text, tests-only, deps pin with no new attack surface)
-- Prefer a **fast local/manual correctness pass** over Bugbot for those cases. Still list findings in the format below.
 
 ### What to run
 
-1. **Always** (unless full skip): a local/manual review of the branch diff — correctness, edge cases, API/input validation, auth/CORS, uploads, secrets, deps, XSS.
-2. **Security review subagent** — launch when the change touches auth, uploads, secrets, network, new endpoints, or user-controlled input; optional for tiny internal helpers. Use `Diff: branch changes`.
-3. **Bugbot** — optional. Launch only for larger multi-file / API / UI feature work, and only if the user has not asked to skip it. Never relaunch Bugbot after abort/timeout in the same turn; fall back to the manual pass and note that Bugbot was skipped.
+1. **Always** (unless full skip): a **fast local/manual** review of the branch diff — correctness, edge cases, API/input validation, auth/CORS, uploads, secrets, deps, XSS.
+2. **Security review subagent** — optional; launch only when the change touches auth, uploads, secrets, network, new endpoints, or user-controlled input. Use `Diff: branch changes`.
+3. **Bugbot** — **do not launch**. Never start Bugbot (or relaunch it) unless the user **explicitly** asks for Bugbot in that turn. Prefer the local/manual pass above.
 4. **List every finding in one response** — one combined list/table, severity highest first. Columns: **Severity | Location (`file:line`) | Finding | Type** (`bug` or `security`). Do not auto-fix unless asked. If none, say so in one short line.
 
 ## Do not
@@ -66,4 +62,5 @@ Once the requested work (code + required doc/script updates) is **complete**, re
 - Change `backend/app/services/` without updating `test-suite/` when those changes need test coverage.
 - Change helpers, filters, preset JSON, or preset DB behavior without updating `backend/presets/PRESETS.md` when that catalog/how-to is affected.
 - End a feature/fix turn without the post-change findings listing (when the skip condition does not apply).
-- Launch Bugbot by default for small/service-only changes, or retry Bugbot after it hangs/aborts.
+- Launch Bugbot unless the user explicitly requests it.
+- Assume cloud image APIs (e.g. Gemini) are part of this project — image edits use local helpers/presets only.
