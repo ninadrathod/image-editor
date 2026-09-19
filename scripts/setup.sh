@@ -29,8 +29,33 @@ pip install -r "${BACKEND_DIR}/requirements.txt"
 echo "==> Making scripts executable"
 chmod +x "${ROOT_DIR}/scripts/setup.sh" "${ROOT_DIR}/scripts/run.sh"
 
+HELPERS_DIR="${BACKEND_DIR}/helpers"
+if [[ -f "${HELPERS_DIR}/requirements.txt" ]]; then
+  echo "==> Installing optional helper deps (subject extraction)"
+  pip install -r "${HELPERS_DIR}/requirements.txt"
+
+  echo "==> Downloading rembg u2net model (~176MB, cached in ~/.rembg — not in the repo)"
+  (
+    cd "${HELPERS_DIR}"
+    python download_model.py
+  )
+fi
+
+echo "==> Initializing preset metadata database"
+python -c "
+import sys
+sys.path.insert(0, '${BACKEND_DIR}')
+from database.init_db import init_db
+from database.db_ops import seed_default_presets
+path = init_db()
+seeded = seed_default_presets()
+print(f'Database ready: {path}')
+print(f'Seeded {len(seeded)} preset(s)')
+"
+
 echo ""
 echo "Setup complete."
 echo "  Next: ./scripts/run.sh"
 echo "  Or with Docker: docker compose up --build"
 echo "  Then open http://localhost:5500"
+echo "  Subject helper: python backend/helpers/extract_subject.py photo.jpg -o subject.png"

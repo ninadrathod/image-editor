@@ -17,7 +17,7 @@ git clone https://github.com/ninadrathod/image-editor.git
 cd image-editor
 ```
 
-2. Set up the project (creates `backend/.venv` and installs dependencies):
+2. Set up the project (creates `backend/.venv`, installs API + helper deps, downloads the rembg `u2net` model into `~/.rembg/`, and initializes `backend/database/presets.db`):
 
 ```bash
 ./scripts/setup.sh
@@ -59,4 +59,24 @@ Service-function unit tests (not HTTP/API) live in `test-suite/` and run on PRs 
 source backend/.venv/bin/activate
 pip install -r test-suite/requirements.txt
 pytest test-suite/ -v
+```
+
+## Optional: subject extraction helper
+
+Setup already installs helper deps and pulls the `u2net` model. To run:
+
+```bash
+source backend/.venv/bin/activate
+python backend/helpers/extract_subject.py path/to/photo.jpg -o subject.png
+```
+
+Model weights live in `~/.rembg/` and are gitignored (also `*.onnx`).
+
+## Optional: JSON presets
+
+Presets are JSON step lists in `backend/presets/`.
+
+```bash
+source backend/.venv/bin/activate
+python backend/helpers/apply_preset.py path/to/photo.jpg -p bw_bg_glowing_subject -o out.png
 ```

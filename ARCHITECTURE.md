@@ -71,6 +71,19 @@ Detailed architecture for the current blur MVP.
 backend/
   Dockerfile
   requirements.txt
+  helpers/
+    requirements.txt     # rembg[cpu] — installed by setup.sh
+    download_model.py    # warm-cache u2net during setup (~/.rembg)
+    extract_subject.py   # CLI: image in → subject PNG (transparent bg)
+    filters.py           # Pillow + rembg filter ops for presets
+    apply_preset.py      # CLI: apply JSON preset steps to an image
+  presets/
+    bw_bg_glowing_subject.json
+  database/
+    schema.sql           # presets table
+    init_db.py           # create presets.db
+    db_ops.py            # CRUD for preset metadata
+    presets.db           # SQLite file (created by setup/init)
   app/
     main.py              # FastAPI app, CORS, /health, router mount
     routes/
@@ -99,6 +112,34 @@ Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, 
 - Pillow `ImageFilter.GaussianBlur` with default radius **12** (`DEFAULT_BLUR_RADIUS` in `services/blur.py`).
 - Non-RGB(A) modes are converted to RGBA before filtering for stable PNG output.
 
+### Subject extraction helper (CLI only)
+
+- `backend/helpers/extract_subject.py` — local background removal via **rembg** (`u2net` session / onnxruntime).
+- Input: any Pillow-readable image path. Output: PNG with alpha (subject kept, background transparent).
+- Not mounted as an HTTP route.
+- `./scripts/setup.sh` installs `backend/helpers/requirements.txt` and runs `download_model.py` so `u2net` (~176MB) is cached under `~/.rembg/` (outside the repo).
+- Gitignore blocks `.rembg/`, `*.onnx`, and `backend/helpers/models/` so weights are never committed.
+- Example: `python backend/helpers/extract_subject.py photo.jpg -o subject.png`
+
+### JSON preset pipeline (CLI only)
+
+- Presets live in `backend/presets/*.json` as ordered `steps` with named layers (`image`, `subject`, `background`, …).
+- Runner: `backend/helpers/apply_preset.py` (uses `filters.py`).
+- Built-in filters: `extract_subject`, `brightness`, `color`, `contrast`, `overlay`, `grayscale`, `glow_border`, `glow_line_border`, `composite`.
+- `glow_line_border` draws a colored outline ring only (does not fill/glow the subject body). Pass `"color": [R,G,B]` (or `"rgb"`).
+- Shipped presets:
+  - `bw_bg_glowing_subject` — extract → grayscale background → `glow_line_border` on subject → composite
+- Example: `python backend/helpers/apply_preset.py photo.jpg -p bw_bg_glowing_subject -o out.png`
+- Human/agent guide: `backend/presets/PRESETS.md`
+- New-preset workflow skill: `.cursor/skills/create-preset/SKILL.md`
+
+### Preset metadata database
+
+- Location: `backend/database/` (SQLite file `presets.db`, same pattern as a lightweight local store).
+- Table `presets`: `preset_id` (PK auto), `preset_name`, `preset_path`, `keywords` (JSON list), `created_date` (auto `datetime('now')`).
+- Service functions: `backend/database/db_ops.py` (`add_preset`, `list_presets`, `get_preset_by_id`, `update_preset`, `delete_preset`, `seed_default_presets`).
+- `./scripts/setup.sh` runs `init_db()` and seeds `bw_bg_glowing_subject`.
+
 ### CORS
 
 - Development CORS allows all origins so any local static host can call the API. Tighten this before production deployment.
@@ -115,16 +156,18 @@ Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, 
 | `README.md` | Setup & run only |
 | `CONTEXT.md` | Short agent/contributor briefing |
 | `ARCHITECTURE.md` | This file — design & data flow |
+| `backend/presets/PRESETS.md` | Helpers, filters, shipped presets, create-preset how-to |
+| `.cursor/skills/create-preset/SKILL.md` | Gated agent workflow to design/ship a new preset |
 | `project.html` | Advertise-style overview; CTAs link to GitHub fork |
 | `scripts/setup.sh` | One-command local bootstrap |
 | `scripts/run.sh` | One-command API + frontend start |
 | `test-suite/` | Service-function unit tests (pytest); CI via `.github/workflows/test-suite.yml` |
 
-When features change, update these in the same change set (enforced by `.cursor/rules/docs-and-branch-safety.mdc`). When `backend/app/services/` change, update matching `test-suite/` tests **only where necessary**.
+When features change, update these in the same change set (enforced by `.cursor/rules/docs-and-branch-safety.mdc`). When `backend/app/services/` change, update matching `test-suite/` tests **only where necessary**. When helpers/filters/presets/DB metadata change, update `PRESETS.md` as needed.
 
 ## Helper scripts
 
-- `scripts/setup.sh` — creates `backend/.venv`, installs `requirements.txt`, ensures scripts are executable.
+- `scripts/setup.sh` — creates `backend/.venv`, installs API + helper requirements, downloads rembg `u2net` into `~/.rembg/`, initializes `backend/database/presets.db`, ensures scripts are executable.
 - `scripts/run.sh` — starts uvicorn (port 8000) and a static file server on the repo root (port 5500); Ctrl+C stops both.
 
 ## Extension points
