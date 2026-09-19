@@ -6,10 +6,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.blur import router as blur_router
+from app.routes.preset import router as preset_router
 
 app = FastAPI(
     title="Image Editor API",
-    description="Upload an image and receive a blurred copy.",
+    description="Upload an image for blur or named-preset edits.",
     version="0.1.0",
 )
 
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(blur_router, prefix="/api")
+app.include_router(preset_router, prefix="/api")
 
 
 @app.get("/health")

@@ -50,16 +50,20 @@ Repo: https://github.com/ninadrathod/image-editor
 - Frontend static server: typically `http://localhost:5500` (any static host of the repo root)
 - Health check: `GET /health`
 - Blur endpoint: `POST /api/blur` (multipart field name: `file`)
+- Apply-preset endpoint: `POST /api/apply-preset` (multipart fields: `preset_name`, `file`) → PNG
+- Upload caps (blur + apply-preset): 20 MiB body, max side 8000 px / 25M pixels; preset JSON paths must stay under `backend/presets/`
+- Apply-preset concurrency: 1 in-flight job (extra requests get **503**)
 
 ## Current scope
 
 - Image upload + client-side type check
 - Server-side Gaussian blur
 - Side-by-side preview + download
+- Server-side apply of a DB-named JSON preset (`POST /api/apply-preset`)
 
-Optional helpers (not part of the blur API):
+Optional helpers:
 - `backend/helpers/extract_subject.py` — background removal (rembg / `u2net`)
-- `backend/helpers/apply_preset.py` — run a JSON preset from `backend/presets/`
+- `backend/helpers/apply_preset.py` — run a JSON preset from `backend/presets/` (also used by the apply-preset API)
 - Example presets: `bw_bg_glowing_subject`
 - `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
