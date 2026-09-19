@@ -2,9 +2,10 @@
 name: commit-draft-pr
 description: >-
   Commit local changes without pushing, then draft a PR title and description
-  for the current branch. Use when the user asks to commit but not push, wants a
-  PR title/description for this branch, or says: "commit the code. but don't
-  push it. give me a PR title and description for this branch."
+  for the full current branch (all commits vs main/master), not only the latest
+  commit. Use when the user asks to commit but not push, wants a PR
+  title/description for this branch, or says: "commit the code. but don't push
+  it. give me a PR title and description for this branch."
 disable-model-invocation: true
 ---
 
@@ -21,6 +22,7 @@ Treat close paraphrases the same (e.g. “commit locally, no push, draft PR copy
 - **Do commit** when this skill is invoked (this request *is* the commit ask).
 - **Do not push** — never `git push` or set upstream unless the user explicitly asks in a later message.
 - **Do not open a PR** (`gh pr create`) unless the user explicitly asks; only **draft** the title and body for them to copy.
+- **PR copy covers the whole branch** — title and description must summarize **all** changes on this branch vs `main`/`master` (every commit in `main..HEAD` / full `main...HEAD` diff). Do **not** write the PR only about the files or commit created in this turn.
 - Follow the repo’s git safety protocol (no force push, no amend unless the usual amend conditions are met, no updating git config, no `--no-verify`).
 - Do not commit secrets (`.env`, credentials, etc.); warn if those are staged/requested.
 
@@ -34,7 +36,7 @@ Commit + draft PR progress:
 - [ ] Stage relevant files only
 - [ ] Commit with a why-focused message
 - [ ] Confirm clean / expected status (no push)
-- [ ] Draft PR title + description from branch vs base
+- [ ] Draft PR title + description from full branch vs base (not just this commit)
 ```
 
 ### 1. Inspect (parallel)
@@ -74,25 +76,35 @@ Stop after the local commit. Tell the user the commit hash and branch name, and 
 
 ### 4. Draft PR title and description
 
-Base the draft on **all** commits on this branch vs `main` (or `master` if that is the default), not only the latest commit:
+After the commit step (or if there was nothing new to commit), draft PR copy for **the entire branch**, not just this turn’s commit.
+
+1. Prefer `main` as the base; use `master` only if `main` does not exist.
+2. Inspect **all** branch commits and the **full** merge-base diff:
 
 ```bash
 git log main..HEAD --oneline
 git diff main...HEAD
+git diff main...HEAD --stat
 ```
+
+3. Write the title and description from that full branch delta:
+   - Include work from **earlier commits on this branch**, not only the latest commit hash.
+   - Do **not** limit Summary bullets to “what I just staged/committed.”
+   - If this turn only added a small follow-up, still describe the branch’s overall purpose and all user-facing / behavioral changes vs base.
+4. The short note about this turn’s commit hash may mention only that commit; the **PR title/description** must still be branch-wide.
 
 Return exactly this shape in the reply (fill in the content):
 
-**PR title:** short imperative summary
+**PR title:** short imperative summary of the whole branch
 
 **PR description:**
 
 ```markdown
 ## Summary
-- 1–3 bullets of what changed and why
+- 1–3 bullets covering all meaningful changes on this branch vs base
 
 ## Test plan
-- [ ] concrete verification steps
+- [ ] concrete verification steps for the full branch
 ```
 
-Keep the title ≤ ~70 characters when practical. Test plan checkboxes should be actionable for a human reviewer.
+Keep the title ≤ ~70 characters when practical. Test plan checkboxes should be actionable for a human reviewer of the full PR.
