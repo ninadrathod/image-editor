@@ -34,6 +34,8 @@ Repo: https://github.com/ninadrathod/local-studio
 | `ARCHITECTURE.md` | How the system works |
 | `.cursor/rules/` | Agent rules (docs sync, branch safety, post-change review) |
 | `.cursor/skills/cleanup-after-push/` | After push: checkout main, pull, delete local feature branch |
+| `.cursor/skills/commit-draft-pr/` | Commit locally (no push) and draft PR title + description |
+| `.cursor/skills/prune-unused-code/` | Audit + remove unused code without changing UI/workflows |
 
 ## Key conventions
 
@@ -76,5 +78,7 @@ Optional helpers:
 - `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); wired into the index UI gallery
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
 - To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/`
+- To commit locally without pushing and get PR title/description copy, use skill `.cursor/skills/commit-draft-pr/`
+- To remove unused/redundant code without changing UI or workflows, use skill `.cursor/skills/prune-unused-code/`
 
 `./scripts/setup.sh` installs helper deps and downloads the `u2net` model into `~/.rembg/` (outside the repo; gitignored). It also recreates `backend/.venv` if the project was renamed/moved and console-script shebangs are stale. `./scripts/run.sh` uses the venv Python directly and exits with a clear error if deps are missing or ports `8000`/`5500` are already taken.
