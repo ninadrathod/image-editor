@@ -51,7 +51,7 @@ let editedUrl = null;
 let generateGeneration = 0;
 /** Nested dragenter counter so child nodes don't flicker the drop highlight. */
 let dragDepth = 0;
-/** @type {Array<{ preset_name: string, post_edit_image: string }>} */
+/** @type {Array<{ preset_name: string, pre_edit_image: string, post_edit_image: string }>} */
 let allGalleryPresets = [];
 /** Bumped on each search keystroke — ignores stale responses. */
 let searchGeneration = 0;
@@ -171,7 +171,7 @@ function setSelectedPreset(name) {
   } else {
     els.selectedPresetLabel.textContent = "No preset selected";
     els.selectedPresetLabel.removeAttribute("title");
-    els.presetHint.textContent = "Click a preview to select";
+    els.presetHint.textContent = "Hover for original · click to select";
     els.presetGrid.removeAttribute("aria-activedescendant");
   }
 
@@ -265,12 +265,11 @@ async function handleGenerate() {
 }
 
 /**
- * @param {{ preset_name: string, post_edit_image: string }} preset
+ * @param {{ preset_name: string, pre_edit_image: string, post_edit_image: string }} preset
  */
 function createPresetCard(preset) {
   const name = preset.preset_name;
   const label = formatPresetLabel(name);
-  const thumb = preset.post_edit_image;
 
   const button = document.createElement("button");
   button.type = "button";
@@ -281,17 +280,29 @@ function createPresetCard(preset) {
   const isSelected = name === selectedPresetName;
   button.setAttribute("aria-selected", isSelected ? "true" : "false");
   if (isSelected) button.classList.add("preset-card--selected");
-  button.setAttribute("aria-label", `Select preset ${label}`);
+  button.setAttribute(
+    "aria-label",
+    `Select preset ${label}. Hover or focus to compare with the original photo.`,
+  );
 
   const media = document.createElement("span");
   media.className = "preset-card__media";
 
-  const img = document.createElement("img");
-  img.src = thumb;
-  img.alt = "";
-  img.loading = "lazy";
-  img.decoding = "async";
-  media.appendChild(img);
+  const imgEdited = document.createElement("img");
+  imgEdited.className = "preset-card__img preset-card__img--edited";
+  imgEdited.src = preset.post_edit_image;
+  imgEdited.alt = "";
+  imgEdited.loading = "lazy";
+  imgEdited.decoding = "async";
+
+  const imgOriginal = document.createElement("img");
+  imgOriginal.className = "preset-card__img preset-card__img--original";
+  imgOriginal.src = preset.pre_edit_image;
+  imgOriginal.alt = "";
+  imgOriginal.loading = "lazy";
+  imgOriginal.decoding = "async";
+
+  media.append(imgEdited, imgOriginal);
 
   const nameEl = document.createElement("span");
   nameEl.className = "preset-card__name";
@@ -304,7 +315,7 @@ function createPresetCard(preset) {
 
 /**
  * Rebuild the preset preview grid from the given list.
- * @param {Array<{ preset_name: string, post_edit_image: string }>} presets
+ * @param {Array<{ preset_name: string, pre_edit_image: string, post_edit_image: string }>} presets
  * @param {{ emptyMessage?: string }} [options]
  */
 function renderPresetGrid(presets, options = {}) {
@@ -344,12 +355,17 @@ async function loadPresets() {
 
     let skipped = 0;
     for (const preset of presets) {
-      if (!isValidPresetName(preset?.preset_name) || !isSafePreviewPath(preset?.post_edit_image)) {
+      if (
+        !isValidPresetName(preset?.preset_name) ||
+        !isSafePreviewPath(preset?.pre_edit_image) ||
+        !isSafePreviewPath(preset?.post_edit_image)
+      ) {
         skipped += 1;
         continue;
       }
       allGalleryPresets.push({
         preset_name: preset.preset_name,
+        pre_edit_image: preset.pre_edit_image,
         post_edit_image: preset.post_edit_image,
       });
     }
