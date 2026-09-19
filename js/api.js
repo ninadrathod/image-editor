@@ -37,6 +37,39 @@ export async function blurImage(baseUrl, file) {
 }
 
 /**
+ * GET presets whose name or keywords match `query` (case-insensitive substring).
+ * @param {string} baseUrl - API origin, e.g. http://localhost:8000
+ * @param {string} query - Search text
+ * @returns {Promise<Array<{ preset_name: string, keywords: string[] }>>}
+ */
+export async function searchPresets(baseUrl, query) {
+  const q = String(query || "").trim();
+  if (!q) return [];
+
+  const url = `${baseUrl}/api/presets/search?q=${encodeURIComponent(q)}`;
+  let response;
+  try {
+    response = await fetch(url);
+  } catch {
+    throw new Error("Could not reach the server. Start the backend and try again.");
+  }
+
+  if (!response.ok) {
+    let detail = "Preset search failed.";
+    try {
+      const data = await response.json();
+      if (data.detail) detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+    } catch {
+      /* ignore non-JSON error bodies */
+    }
+    throw new Error(detail);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/**
  * POST preset name + image to /api/apply-preset and return the result as a Blob.
  * @param {string} baseUrl - API origin, e.g. http://localhost:8000
  * @param {string} presetName - DB preset_name

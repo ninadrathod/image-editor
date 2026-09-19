@@ -108,7 +108,7 @@ Table `presets` in `backend/database/presets.db`:
 | `preset_id` | Auto primary key |
 | `preset_name` | Unique name (usually matches JSON `name` / filename stem) |
 | `preset_path` | Repo-relative path, e.g. `backend/presets/foo.json` |
-| `keywords` | JSON list of search tags |
+| `keywords` | JSON list of search tags (also searched with `preset_name` by `GET /api/presets/search?q=…`) |
 | `created_date` | Auto timestamp |
 
 ```bash
@@ -116,8 +116,9 @@ source backend/.venv/bin/activate
 python -c "
 import sys
 sys.path.insert(0, 'backend')
-from database.db_ops import add_preset, list_presets
+from database.db_ops import add_preset, list_presets, search_presets_by_keyword
 print(list_presets())
+print(search_presets_by_keyword("glow"))
 "
 ```
 

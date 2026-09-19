@@ -61,7 +61,15 @@ body {
   animation: rise 0.75s var(--ease) 0.14s both;
 }
 
-/* Preset gallery (left column) */
+/* Full-width studio: 65% left (presets) / 35% right (upload) on desktop.
+   Higher specificity so this wins over Tailwind's `grid-cols-1`. */
+@media (min-width: 1024px) {
+  .studio-layout .studio-columns {
+    grid-template-columns: minmax(0, 65fr) minmax(0, 35fr);
+  }
+}
+
+/* Preset gallery */
 .preset-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -77,10 +85,10 @@ body {
   }
 }
 
-/* Desktop: scrollable left column */
+/* Desktop: scrollable gallery — more columns now that the left pane is ~65% */
 @media (min-width: 1024px) {
   .preset-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
     max-height: min(70vh, 42rem);
     overflow-y: auto;
@@ -92,7 +100,7 @@ body {
 
 @media (min-width: 1280px) {
   .preset-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1.1rem;
   }
 }
@@ -195,6 +203,37 @@ body {
   text-align: right;
 }
 
+/* Keyword search (filters the preset gallery) */
+.preset-search-input {
+  width: 100%;
+  margin: 0;
+  padding: 0.7rem 0.95rem;
+  border-radius: calc(var(--radius) - 0.35rem);
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--chalk) 88%, white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  outline: none;
+  transition:
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+
+.preset-search-input::placeholder {
+  color: color-mix(in srgb, var(--mute) 78%, transparent);
+}
+
+.preset-search-input:hover {
+  border-color: color-mix(in srgb, var(--forest) 28%, var(--line));
+}
+
+.preset-search-input:focus {
+  border-color: color-mix(in srgb, var(--forest) 45%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--forest) 16%, transparent);
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -274,6 +313,23 @@ body {
   .stage.stage--result {
     min-height: 13rem;
     max-height: min(34vh, 20rem);
+  }
+
+  /* Narrow ~35% right column: taller panels so stages stay usable */
+  .studio-columns__right .stage.stage--upload,
+  .studio-columns__right .stage.stage--result {
+    aspect-ratio: 4 / 3;
+    min-height: 13.5rem;
+    max-height: min(42vh, 24rem);
+  }
+}
+
+@media (min-width: 1280px) {
+  .studio-columns__right .stage.stage--upload,
+  .studio-columns__right .stage.stage--result {
+    aspect-ratio: 5 / 4;
+    min-height: 15rem;
+    max-height: min(44vh, 26rem);
   }
 }
 

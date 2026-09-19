@@ -17,16 +17,20 @@ Detailed architecture for the preset-based local image editor.
 ┌──────────────────────────────────────────────────────────────┐
 │  Browser                                                     │
 │  index.html + script.js                                      │
-│    ├─ left: preset gallery from previews/presets.json        │
+│    ├─ left: search + preset gallery                          │
+│    │         (GET /api/presets/search filters previews)      │
+│    ├─ right: upload + edited result                          │
 │    ├─ js/image.js   → validate MIME / extension, object URLs │
-│    └─ js/api.js     → FormData POST to /api/apply-preset     │
+│    └─ js/api.js     → searchPresets + applyPreset FormData   │
 └────────────────────────────┬─────────────────────────────────┘
                              │ multipart: preset_name + file
                              ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Local FastAPI (uvicorn) on port 8000                        │
 │    routes/preset.py → validate upload, orchestrate           │
+│    routes/search.py → name/keyword substring search          │
 │    services/preset.py → DB name → JSON path → apply_preset   │
+│    services/preset_search.py → DB name + keyword match       │
 │    services/image_io.py → decode bytes ↔ Pillow / PNG encode │
 │    helpers/apply_preset.py + filters.py → filter pipeline    │
 └──────────────────────────────────────────────────────────────┘
@@ -36,18 +40,17 @@ Detailed architecture for the preset-based local image editor.
 
 ### Entry points
 
-- `index.html` — two-column UI (Tailwind via CDN, custom atmosphere in `css/styles.css`):
-  - **Left:** preset grid (post-edit preview + name); click selects a preset.
-  - **Right top:** file upload / original preview.
-  - **Right bottom:** edited result stage + **Generate edit** / **Download**.
-- `script.js` — wires gallery load, selection, file pick/drag-drop, generate button.
+- `index.html` — full-width two-column UI (Tailwind via CDN, custom atmosphere in `css/styles.css`):
+  - **Left (~65%):** search input + preset grid (post-edit preview + name); search reloads the grid from DB name/keyword matches.
+  - **Right (~35%):** file upload / original preview, then edited result + **Generate edit** / **Download**.
+- `script.js` — wires gallery load, debounced search (filters gallery), selection, file pick/drag-drop, generate button.
 - `js/image.js` — `isImageFile`, object URL create/revoke.
-- `js/api.js` — `applyPreset(baseUrl, presetName, file)` → `Blob` (also retains `blurImage` for `/api/blur`).
+- `js/api.js` — `searchPresets(baseUrl, query)` → match list; `applyPreset(baseUrl, presetName, file)` → `Blob` (also retains `blurImage` for `/api/blur`).
 
 ### UX flow
 
 1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails (entries must use a valid `preset_name` and a relative path under `previews/pre-edit/` or `previews/post-edit/`).
-2. User clicks a preset card to select it.
+2. User clicks a preset card to select it, **or** types in the left-column search box (debounced) to query DB `preset_name` + keywords via `GET /api/presets/search?q=…` — the gallery reloads to matching presets only (cleared query restores the full gallery).
 3. User selects or drops a file; client rejects non-images and shows an inline error.
 4. Original preview uses a local object URL.
 5. When **both** preset and file are set, **Generate edit** enables.
@@ -102,10 +105,12 @@ backend/
     routes/
       blur.py            # POST /api/blur
       preset.py          # POST /api/apply-preset
+      search.py          # GET /api/presets/search
     services/
       blur.py            # is_allowed_image, apply_blur
       image_io.py        # load_image, save_png_bytes, upload/dimension caps
       preset.py          # resolve DB preset name → JSON (sandboxed); apply_named_preset
+      preset_search.py   # name/keyword substring search over presets table
 
 test-suite/              # pytest unit tests for services only (not routes/HTTP)
   conftest.py            # adds backend/ to sys.path
@@ -113,12 +118,15 @@ test-suite/              # pytest unit tests for services only (not routes/HTTP)
   test_blur.py
   test_image_io.py
   test_preset.py
+  test_preset_search.py
+  test_database.py
 ```
 ### API contracts
 
 | Method | Path | Request | Response |
 |--------|------|---------|----------|
 | GET | `/health` | — | `{ "status": "ok" }` |
+| GET | `/api/presets/search` | query `q` (name/keyword substring, max 64) | JSON `[{ "preset_name", "keywords" }, …]` |
 | POST | `/api/blur` | `multipart/form-data` field `file` | `image/png` bytes |
 | POST | `/api/apply-preset` | `multipart/form-data` fields `preset_name`, `file` | `image/png` bytes |
 
@@ -157,7 +165,8 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 
 - Location: `backend/database/` (SQLite file `presets.db`, same pattern as a lightweight local store).
 - Table `presets`: `preset_id` (PK auto), `preset_name`, `preset_path`, `keywords` (JSON list), `created_date` (auto `datetime('now')`).
-- Service functions: `backend/database/db_ops.py` (`add_preset`, `list_presets`, `get_preset_by_id`, `update_preset`, `delete_preset`, `seed_default_presets`).
+- Service functions: `backend/database/db_ops.py` (`add_preset`, `list_presets`, `search_presets_by_keyword`, `get_preset_by_id`, `update_preset`, `delete_preset`, `seed_default_presets`).
+- Keyword search API: `GET /api/presets/search?q=…` → case-insensitive substring match against each preset’s `preset_name` and keywords (`services/preset_search.py` + `routes/search.py`).
 - `./scripts/setup.sh` runs `init_db()` and seeds `bw_bg_glowing_subject`.
 
 ### CORS
