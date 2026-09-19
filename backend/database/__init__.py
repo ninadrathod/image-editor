@@ -1,4 +1,4 @@
-"""File-based SQLite store for image-editor preset metadata."""
+"""File-based SQLite store for The Local Studio preset metadata."""
 
 from .db_ops import (
     add_preset,

@@ -1,7 +1,7 @@
 ---
 name: create-preset
 description: >-
-  Create a new image-editor JSON preset from a plain-language request (and
+  Create a new JSON preset for The Local Studio from a plain-language request (and
   optional reference images). Runs a gated POC → name → keywords → ship
   workflow into backend/presets/, helpers/, and the SQLite presets database.
   Use when the user asks to create a preset, add a new look/filter recipe,
@@ -51,7 +51,7 @@ I will tell what I want in plain language (may also provide some reference image
 ### 2. Temporary POC presets + preview images
 
 - Branch safety: if on `main`/`master`, create a feature branch before any repo edits. POC files may live only under `/tmp`.
-- Write **2–3** draft preset JSON files under `/tmp/image-editor-preset-poc/<slug>/` (not under `backend/presets/` yet).
+- Write **2–3** draft preset JSON files under `/tmp/local-studio-preset-poc/<slug>/` (not under `backend/presets/` yet).
 - Apply each draft with:
 
 ```bash

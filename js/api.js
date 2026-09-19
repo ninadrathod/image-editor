@@ -1,5 +1,5 @@
 /**
- * Talks to the image-editor backend.
+ * Talks to The Local Studio backend.
  */
 
 /**
