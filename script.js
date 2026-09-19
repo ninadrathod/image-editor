@@ -22,6 +22,7 @@ const els = {
   presetError: document.getElementById("preset-error"),
   selectedPresetLabel: document.getElementById("selected-preset-label"),
   presetSearch: document.getElementById("preset-search"),
+  presetReset: document.getElementById("preset-reset"),
   searchError: document.getElementById("search-error"),
   input: document.getElementById("image-input"),
   dropZone: document.getElementById("drop-zone"),
@@ -171,6 +172,10 @@ function setSelectedPreset(name) {
     els.presetGrid.removeAttribute("aria-activedescendant");
   }
 
+  if (els.presetReset) {
+    els.presetReset.disabled = !name;
+  }
+
   updateGenerateEnabled();
 }
 
@@ -318,6 +323,7 @@ function renderPresetGrid(presets, options = {}) {
   els.presetGrid.replaceChildren();
 
   if (!presets.length) {
+    els.presetGrid.removeAttribute("aria-activedescendant");
     const empty = document.createElement("p");
     empty.className = "col-span-full text-sm text-mute py-8 text-center";
     empty.textContent = options.emptyMessage || "No presets to show.";
@@ -329,8 +335,13 @@ function renderPresetGrid(presets, options = {}) {
     els.presetGrid.appendChild(createPresetCard(preset));
   }
 
-  if (selectedPresetName) {
-    els.presetGrid.setAttribute("aria-activedescendant", `preset-${selectedPresetName}`);
+  const activeCard = selectedPresetName
+    ? els.presetGrid.querySelector(`#preset-${selectedPresetName}`)
+    : null;
+  if (activeCard) {
+    els.presetGrid.setAttribute("aria-activedescendant", activeCard.id);
+  } else {
+    els.presetGrid.removeAttribute("aria-activedescendant");
   }
 }
 
@@ -441,6 +452,12 @@ els.generateBtn.addEventListener("click", handleGenerate);
 
 if (els.presetSearch) {
   els.presetSearch.addEventListener("input", schedulePresetSearch);
+}
+
+if (els.presetReset) {
+  els.presetReset.addEventListener("click", () => {
+    setSelectedPreset(null);
+  });
 }
 
 els.dropZone.addEventListener("dragenter", (e) => {
