@@ -64,7 +64,7 @@ Repo: https://github.com/ninadrathod/local-studio
 - Preset gallery (left, ~65% width on desktop): search + post-edit thumbnails from `previews/presets.json`; hover/focus reveals pre-edit original; click to select
 - Search filters the gallery in place via realtime `GET /api/presets/search?q=…` (DB `preset_name` + `keywords`)
 - Image upload (right, ~35% width on desktop): client-side type check + preview
-- Studio UI uses the full browser width (no max-content cap on `index.html`)
+- Studio UI uses the full browser viewport (no page scroll); the preset gallery scrolls internally when needed
 - Generate edit when both preset + file are set → `POST /api/apply-preset` → result + download
 - Session state is in-memory only (refresh clears upload + edited result)
 - Gallery only accepts `preset_name` + relative `previews/pre-edit|post-edit/…` paths from `presets.json`
