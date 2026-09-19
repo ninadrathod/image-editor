@@ -40,7 +40,7 @@ Repo: https://github.com/ninadrathod/local-studio
 ## Key conventions
 
 - Keep code **modular and easy to read** (small modules, clear names).
-- Frontend styling: **Tailwind** (CDN) + custom CSS in `css/styles.css` — **Pop Poster** theme (cream paper, coral/sky/lemon accents, thick ink outlines; **Lilita One** brand wordmark, **Fredoka** UI display + **Nunito** body). Preview of alternate directions: `design-options.html`.
+- Frontend styling: **Tailwind** (CDN) + custom CSS in `css/styles.css` — **Pop Poster** theme (cream paper, coral/sky/lemon accents, thick ink outlines; **Lilita One** brand wordmark, **Fredoka** UI display + **Nunito** body).
 - Backend image work lives in `backend/app/services/`; routes stay thin.
 - Service-function tests live in `test-suite/` (pytest); keep them in sync when service behavior changes.
 - Do **not** put architecture detail in `README.md`.
