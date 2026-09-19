@@ -4,12 +4,13 @@ Short briefing for AI agents and new contributors. Prefer this file for orientat
 
 ## What this project is
 
-A local **image editor** whose first feature is **server-side blur**:
+A local **image editor** for applying JSON presets to photos:
 
-1. User uploads an image in the browser (validated as an image).
-2. Frontend `POST`s the file to `POST /api/blur`.
-3. Backend (FastAPI + Pillow) applies a Gaussian blur and returns a PNG.
-4. Frontend shows (and can download) the result.
+1. User picks a preset from the gallery (post-edit preview thumbnails from `previews/`).
+2. User uploads an image in the browser (validated as an image).
+3. Frontend `POST`s preset name + file to `POST /api/apply-preset`.
+4. Backend resolves the preset from SQLite, runs the JSON filter pipeline, returns a PNG.
+5. Frontend shows (and can download) the result. Refresh clears in-memory session state.
 
 Repo: https://github.com/ninadrathod/local-studio
 
@@ -43,7 +44,7 @@ Repo: https://github.com/ninadrathod/local-studio
 - Do **not** put architecture detail in `README.md`.
 - After meaningful product/code changes, update `project.html`, `README.md`, `ARCHITECTURE.md`, `CONTEXT.md`, `scripts/setup.sh` / `scripts/run.sh`, and `test-suite/` as needed.
 - **Never commit directly on `main`** — create a feature branch first (see Cursor rule).
-- After finishing product/code changes on a branch, the agent must run a thorough **bug + security** review of branch changes and list **all** findings at once (see `.cursor/rules/docs-and-branch-safety.mdc`).
+- After finishing product/code changes on a branch, the agent must run a thorough **bug + security** review of branch changes (and **UI responsiveness** across phone/tablet/desktop when frontend layout changed) and list **all** findings at once (see `.cursor/rules/docs-and-branch-safety.mdc`).
 
 ## Local defaults
 
@@ -57,18 +58,20 @@ Repo: https://github.com/ninadrathod/local-studio
 
 ## Current scope
 
-- Image upload + client-side type check
-- Server-side Gaussian blur
-- Side-by-side preview + download
-- Server-side apply of a DB-named JSON preset (`POST /api/apply-preset`)
+- Preset gallery (left): loads `previews/presets.json`, shows post-edit thumbnails; click to select
+- Image upload (right): client-side type check + preview
+- Generate edit when both preset + file are set → `POST /api/apply-preset` → result + download
+- Session state is in-memory only (refresh clears upload + edited result)
+- Gallery only accepts `preset_name` + relative `previews/pre-edit|post-edit/…` paths from `presets.json`
+- Server-side Gaussian blur still available via `POST /api/blur` (not the primary UI flow)
 
 Optional helpers:
 - `backend/helpers/extract_subject.py` — background removal (rembg / `u2net`)
 - `backend/helpers/apply_preset.py` — run a JSON preset from `backend/presets/` (also used by the apply-preset API)
 - Example presets: `bw_bg_glowing_subject`
 - `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
-- `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); not wired to the UI yet
+- `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); wired into the index UI gallery
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
 - To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/`
 
-`./scripts/setup.sh` installs helper deps and downloads the `u2net` model into `~/.rembg/` (outside the repo; gitignored).
+`./scripts/setup.sh` installs helper deps and downloads the `u2net` model into `~/.rembg/` (outside the repo; gitignored). It also recreates `backend/.venv` if the project was renamed/moved and console-script shebangs are stale. `./scripts/run.sh` uses the venv Python directly and exits with a clear error if deps are missing or ports `8000`/`5500` are already taken.
