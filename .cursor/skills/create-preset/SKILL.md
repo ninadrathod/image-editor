@@ -2,10 +2,11 @@
 name: create-preset
 description: >-
   Create a new JSON preset for The Local Studio from a plain-language request (and
-  optional reference images). Runs a gated POC → name → keywords → ship
-  workflow into backend/presets/, helpers/, and the SQLite presets database.
-  Use when the user asks to create a preset, add a new look/filter recipe,
-  design an image effect pipeline, or follow the create-preset skill.
+  optional reference images). Runs a gated POC → name → keywords → ship →
+  gallery preview workflow into backend/presets/, helpers/, the SQLite presets
+  database, and previews/. Use when the user asks to create a preset, add a new
+  look/filter recipe, design an image effect pipeline, or follow the
+  create-preset skill.
 disable-model-invocation: true
 ---
 
@@ -25,7 +26,8 @@ Create-preset progress:
 - [ ] 2. Temporary POC presets + sample output images (user picks one)
 - [ ] 3. Propose preset names (user picks one)
 - [ ] 4. Propose keywords (user finalizes the list)
-- [ ] 5. Ship: helpers (if needed) + presets/*.json + database row
+- [ ] 5. Ship: helpers (if needed) + presets/*.json + database row + docs/tests
+- [ ] 6. Gallery previews: search → square 720 → apply → user picks → ship assets
 ```
 
 ## How the user will ask
@@ -38,6 +40,7 @@ I will tell what I want in plain language (may also provide some reference image
 - then give me potential preset names for the database. I'll finalize one name
 - then generate a list of potential keywords that would associate well with the preset, I'll finalize this list
 - after all of this is finalized, create any helper scripts in helper/ if necessary, add the preset json to presets/, create an entry for this new preset in the database.
+- then find open-licensed candidate photos that suit the new preset, prepare square 720×720 previews, show me the applied results, and only after I pick one write `previews/pre-edit/`, `previews/post-edit/`, and `previews/presets.json`.
 
 ## Step details
 
@@ -97,9 +100,26 @@ print(add_preset(
 5. Add/adjust `test-suite/` coverage when new filter behavior needs it.
 6. Run a final apply on a sample image and show the shipped output once.
 
+Do **not** write gallery assets under `previews/` in this step — that is step 6.
+
+### 6. Gallery previews (only after step 5)
+
+Understand what the shipped preset does, then pick photos where that effect actually looks good (subject cutout, color vs B&W, silhouette + glow, etc.). Subject matter can be anything that fits the look — scenic, street, portrait, poster/music-cover vibe — not limited to landscapes.
+
+1. **Search** for several **open-licensed** photographs on the internet that would show this preset well. Prefer CC0 / CC BY / CC BY-SA (e.g. Wikimedia Commons) or other clearly free licenses. Never use unlicensed stock. Verify license + photographer/source for each candidate.
+2. **Prepare** each candidate: crop to a square (crop excess from one side so composition stays strong), then downsample to **720×720**. Keep work under `/tmp` or `previews/_candidates/` until the user picks — do not overwrite shipped `pre-edit/` / `post-edit/` yet.
+3. **Apply** the shipped preset to each prepared square, show the user the results (and optionally originals), and **ask which image is best** for the gallery preview. Wait for the user to finalize one letter/candidate.
+4. **Once finalized**, write:
+   - `previews/pre-edit/<final_name>.*` — the chosen square 720×720 source
+   - `previews/post-edit/<final_name>.png` — same crop after the preset
+   - append `{ "preset_name", "pre_edit_image", "post_edit_image" }` to `previews/presets.json`
+   - record source + photographer + license in `previews/CREDITS.md`
+   - remove any temporary `previews/_candidates/` (or `/tmp` POC) files used for comparison
+
 ## Rules
 
 - Never commit rembg/ONNX weights; models stay in `~/.rembg/`.
 - Do not invent extra HTTP routes unless asked — apply by DB name via existing `POST /api/apply-preset`.
-- Do not finalize name/keywords/DB/files before the user confirms each gate.
+- Do not finalize name/keywords/DB/files/gallery assets before the user confirms each gate.
+- Gallery previews must be open-licensed, square **720×720**, with matching pre-edit and post-edit crops.
 - If a needed look cannot be done with current filters, say so in step 1–2 and propose a small new helper filter before POC.

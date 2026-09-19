@@ -15,6 +15,7 @@ For the agent workflow (POC → name → keywords → ship), use the project ski
 | `backend/helpers/extract_subject.py` | Subject cutout CLI (rembg / `u2net`) |
 | `backend/helpers/download_model.py` | Warm-cache `u2net` during setup |
 | `backend/database/` | SQLite metadata (`presets.db`, `db_ops.py`) |
+| `previews/pre-edit/` + `previews/post-edit/` + `previews/presets.json` | Before/after gallery assets per DB preset + name→path map (sources in `previews/CREDITS.md`) |
 | `POST /api/apply-preset` | HTTP: DB `preset_name` + image upload → PNG |
 
 ## Run a preset
@@ -127,11 +128,16 @@ print(list_presets())
 3. Review temporary POC outputs under `/tmp` and pick one recipe.
 4. Pick a final `snake_case` preset name.
 5. Finalize the keywords list.
-6. Agent then:
+6. Agent then ships code:
    - adds helpers/filters only if needed
    - writes `backend/presets/<name>.json`
    - inserts a row with `add_preset(...)`
-   - updates this file + CONTEXT/ARCHITECTURE
+   - updates this file + CONTEXT/ARCHITECTURE (+ tests if needed)
+7. Gallery previews (gated — see create-preset skill step 6):
+   - search open-licensed candidates that suit the preset
+   - crop square + downsample to **720×720**
+   - apply preset and let you pick the best preview
+   - write `previews/pre-edit/<name>.*`, `previews/post-edit/<name>.png`, `previews/presets.json`, and `previews/CREDITS.md`
 
 ## Adding a new filter (when needed)
 

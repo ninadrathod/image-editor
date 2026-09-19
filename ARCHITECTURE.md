@@ -50,6 +50,12 @@ Detailed architecture for the current blur MVP.
 
 - API base URL is currently hard-coded in `script.js` as `http://localhost:8000`.
 
+### Preset preview assets
+
+- `previews/pre-edit/` — open-licensed source photo per shipped DB preset (see `previews/CREDITS.md`).
+- `previews/post-edit/` — same photo after that preset is applied.
+- `previews/presets.json` — array of `{ preset_name, pre_edit_image, post_edit_image }` (repo-relative paths). Intended for a future frontend gallery; not wired yet.
+
 ### Marketing page
 
 - `project.html` is a lightweight advertise-style page (flow, CTAs). It points users to **fork the GitHub repo** and run locally — there is no hosted live app.
