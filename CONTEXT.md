@@ -18,6 +18,7 @@ Repo: https://github.com/ninadrathod/local-studio
 | Path | Role |
 |------|------|
 | `index.html`, `script.js`, `js/`, `css/`, `icons/` | Frontend UI |
+| `previews/` | Preset gallery assets: `pre-edit/` + `post-edit/` (before/after per DB preset) + `presets.json` |
 | `project.html` | Advertise-style project pitch (fork on GitHub to use) |
 | `backend/` | FastAPI app |
 | `backend/helpers/` | CLI helpers: subject extraction + JSON preset runner |
@@ -66,6 +67,7 @@ Optional helpers:
 - `backend/helpers/apply_preset.py` — run a JSON preset from `backend/presets/` (also used by the apply-preset API)
 - Example presets: `bw_bg_glowing_subject`
 - `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
+- `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); not wired to the UI yet
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
 - To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/`
 
