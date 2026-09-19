@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — Image Editor (Blur Studio)
+# ARCHITECTURE.md — The Local Studio
 
 Detailed architecture for the current blur MVP.
 

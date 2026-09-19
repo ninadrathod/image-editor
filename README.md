@@ -1,4 +1,4 @@
-# Image Editor (Blur Studio)
+# The Local Studio
 
 Upload an image, send it to the API, and get a blurred copy back.
 
@@ -12,8 +12,8 @@ Upload an image, send it to the API, and get a blurred copy back.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/ninadrathod/image-editor.git
-cd image-editor
+git clone https://github.com/ninadrathod/local-studio.git
+cd local-studio
 ```
 
 2. Set up the project (creates `backend/.venv`, installs API + helper deps, downloads the rembg `u2net` model into `~/.rembg/`, and initializes `backend/database/presets.db`):

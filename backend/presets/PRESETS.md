@@ -1,6 +1,6 @@
 # Presets & helpers
 
-Guide for image-editor JSON presets: what exists today, and how to add a new one.
+Guide for The Local Studio JSON presets: what exists today, and how to add a new one.
 
 For the agent workflow (POC → name → keywords → ship), use the project skill
 `.cursor/skills/create-preset/SKILL.md`.

@@ -1,4 +1,4 @@
-# CONTEXT.md — Image Editor (Blur Studio)
+# CONTEXT.md — The Local Studio
 
 Short briefing for AI agents and new contributors. Prefer this file for orientation; see `ARCHITECTURE.md` for deeper design.
 
@@ -11,7 +11,7 @@ A local **image editor** whose first feature is **server-side blur**:
 3. Backend (FastAPI + Pillow) applies a Gaussian blur and returns a PNG.
 4. Frontend shows (and can download) the result.
 
-Repo: https://github.com/ninadrathod/image-editor
+Repo: https://github.com/ninadrathod/local-studio
 
 ## Layout (high level)
 
