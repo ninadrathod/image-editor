@@ -1,5 +1,5 @@
 ---
-description: Branch safety, docs sync, and lightweight post-change review (no Bugbot)
+description: Branch safety, docs sync, and lightweight post-change review (bugs, security, UI responsiveness; no Bugbot)
 alwaysApply: true
 ---
 
@@ -39,7 +39,7 @@ When you change product behavior, APIs, setup steps, UI flows, or project struct
 - When you change `backend/helpers/` filters, `backend/helpers/apply_preset.py`, `backend/presets/`, or `backend/database/` preset metadata, update `backend/presets/PRESETS.md` (and `CONTEXT.md` / `ARCHITECTURE.md` if layout or contracts changed) in the same change set.
 - If a change is purely internal with zero user/setup/API/preset impact, skip doc/script updates — but when in doubt, update `CONTEXT.md`, `ARCHITECTURE.md`, `PRESETS.md` when presets/helpers are involved, and the scripts if startup changed.
 
-## After all changes are finished — bug & security review
+## After all changes are finished — bug, security & UI review
 
 Once the requested work (code + required doc/script updates) is **complete**, review **branch changes** vs `main`/`master` (committed + uncommitted) before ending the turn.
 
@@ -50,9 +50,15 @@ Once the requested work (code + required doc/script updates) is **complete**, re
 ### What to run
 
 1. **Always** (unless full skip): a **fast local/manual** review of the branch diff — correctness, edge cases, API/input validation, auth/CORS, uploads, secrets, deps, XSS.
-2. **Security review subagent** — optional; launch only when the change touches auth, uploads, secrets, network, new endpoints, or user-controlled input. Use `Diff: branch changes`.
-3. **Bugbot** — **do not launch**. Never start Bugbot (or relaunch it) unless the user **explicitly** asks for Bugbot in that turn. Prefer the local/manual pass above.
-4. **List every finding in one response** — one combined list/table, severity highest first. Columns: **Severity | Location (`file:line`) | Finding | Type** (`bug` or `security`). Do not auto-fix unless asked. If none, say so in one short line.
+2. **UI responsiveness** — when the change touches frontend UI (`index.html`, `project.html`, `css/`, `script.js`, `js/`, or other user-facing layout/styles): check that the layout works across screen sizes before ending the turn. Cover at least:
+   - **Narrow phone** (~320–390px width)
+   - **Tablet / medium** (~768px width)
+   - **Desktop** (~1280px+ width)
+   - **Short landscape** (optional but preferred when CSS has height-based breakpoints)
+   Look for overflow, clipped text/controls, unusable sticky bars, stacked columns that break, and stages/grids that ignore their responsive rules. Prefer resizing the running app or browser tools; if the app isn’t running, review the CSS/HTML breakpoints in the diff and call out unverified risks.
+3. **Security review subagent** — optional; launch only when the change touches auth, uploads, secrets, network, new endpoints, or user-controlled input. Use `Diff: branch changes`.
+4. **Bugbot** — **do not launch**. Never start Bugbot (or relaunch it) unless the user **explicitly** asks for Bugbot in that turn. Prefer the local/manual pass above.
+5. **List every finding in one response** — one combined list/table, severity highest first. Columns: **Severity | Location (`file:line`) | Finding | Type** (`bug`, `security`, or `ui`). Do not auto-fix unless asked. If none, say so in one short line.
 
 ## Do not
 
@@ -62,5 +68,6 @@ Once the requested work (code + required doc/script updates) is **complete**, re
 - Change `backend/app/services/` without updating `test-suite/` when those changes need test coverage.
 - Change helpers, filters, preset JSON, or preset DB behavior without updating `backend/presets/PRESETS.md` when that catalog/how-to is affected.
 - End a feature/fix turn without the post-change findings listing (when the skip condition does not apply).
+- Skip UI responsiveness checks when frontend layout/CSS/HTML changed.
 - Launch Bugbot unless the user explicitly requests it.
 - Assume cloud image APIs (e.g. Gemini) are part of this project — image edits use local helpers/presets only.

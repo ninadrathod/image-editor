@@ -61,6 +61,140 @@ body {
   animation: rise 0.75s var(--ease) 0.14s both;
 }
 
+/* Preset gallery (left column) */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  max-height: none;
+}
+
+/* Tablet: full-width stack → 3-up gallery */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .preset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+}
+
+/* Desktop: scrollable left column */
+@media (min-width: 1024px) {
+  .preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    max-height: min(70vh, 42rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.35rem;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (min-width: 1280px) {
+  .preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.1rem;
+  }
+}
+
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: calc(var(--radius) - 0.15rem);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.25s var(--ease);
+}
+
+.preset-card:hover {
+  transform: translateY(-2px);
+}
+
+.preset-card:focus-visible .preset-card__media {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--forest) 28%, transparent);
+}
+
+.preset-card__media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 0.2rem);
+  background: color-mix(in srgb, var(--chalk) 88%, white);
+  border: 2px solid color-mix(in srgb, var(--line) 85%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+  transition:
+    border-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease);
+}
+
+.preset-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preset-card:hover .preset-card__media {
+  border-color: color-mix(in srgb, var(--forest) 40%, var(--line));
+}
+
+.preset-card--selected .preset-card__media {
+  border-color: var(--forest);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--forest) 18%, transparent),
+    0 1px 0 rgba(255, 255, 255, 0.65) inset;
+}
+
+.preset-card__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  padding: 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--mute);
+  transition: color 0.2s var(--ease);
+}
+
+@media (min-width: 640px) {
+  .preset-card__name {
+    font-size: 0.78rem;
+  }
+}
+
+.preset-card--selected .preset-card__name {
+  color: var(--forest-deep);
+  font-weight: 600;
+}
+
+.studio-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-inline: 0.125rem;
+}
+
+.studio-section-head > :last-child {
+  min-width: 0;
+  flex-shrink: 1;
+  text-align: right;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -106,22 +240,89 @@ body {
   }
 }
 
-/* Very short viewports: prefer height over aspect lock */
-@media (max-height: 640px) and (orientation: landscape) {
-  .stage {
-    aspect-ratio: auto;
-    min-height: 11rem;
-    max-height: 42vh;
-    height: 42vh;
+/* Upload / result panels — higher specificity so they win over .stage at every breakpoint */
+.stage.stage--upload {
+  aspect-ratio: 16 / 10;
+  min-height: 10.5rem;
+  max-height: min(34vh, 16rem);
+}
+
+.stage.stage--result {
+  aspect-ratio: 16 / 10;
+  min-height: 11rem;
+  max-height: min(38vh, 18rem);
+}
+
+@media (min-width: 640px) {
+  .stage.stage--upload {
+    min-height: 12rem;
+    max-height: min(32vh, 17rem);
   }
 
+  .stage.stage--result {
+    min-height: 13rem;
+    max-height: min(36vh, 20rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .stage.stage--upload {
+    min-height: 11.5rem;
+    max-height: min(28vh, 16rem);
+  }
+
+  .stage.stage--result {
+    min-height: 13rem;
+    max-height: min(34vh, 20rem);
+  }
+}
+
+/* Very short / landscape viewports */
+@media (max-height: 640px) and (orientation: landscape) {
   .hero {
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
   }
 
   .hero h1 {
-    font-size: clamp(1.4rem, 4vw, 2rem) !important;
+    font-size: clamp(1.25rem, 3.5vw, 1.85rem) !important;
+  }
+
+  .hero p:not(.eyebrow) {
+    display: none;
+  }
+
+  .preset-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+    max-height: 48vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .stage,
+  .stage.stage--upload,
+  .stage.stage--result {
+    aspect-ratio: auto;
+    min-height: 8.5rem;
+    max-height: 36vh;
+    height: 36vh;
+  }
+}
+
+/* Narrow phones */
+@media (max-width: 379px) {
+  .preset-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .preset-card__name {
+    font-size: 0.65rem;
+  }
+
+  .studio-section-head .section-meta {
+    display: none;
   }
 }
 
@@ -270,6 +471,13 @@ body {
   }
 }
 
+/* Extra bottom room so sticky actions don't cover the last stage on phones */
+@media (max-width: 639px) {
+  .studio-layout {
+    padding-bottom: 0.5rem;
+  }
+}
+
 .spinner {
   width: 1.65rem;
   height: 1.65rem;
@@ -319,8 +527,13 @@ body {
   .hero p,
   .workspace,
   .spinner,
-  .drop-zone:hover .upload-icon-wrap {
+  .drop-zone:hover .upload-icon-wrap,
+  .preset-card {
     animation: none !important;
     transition: none !important;
+  }
+
+  .preset-card:hover {
+    transform: none;
   }
 }

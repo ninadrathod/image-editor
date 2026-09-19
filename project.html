@@ -70,8 +70,8 @@
             The Local Studio
           </h1>
           <p class="mt-4 sm:mt-5 text-mute text-base sm:text-lg max-w-xl mx-auto text-pretty leading-relaxed">
-            A local image editor with a calm workflow — upload a photo, let the API
-            soften it, preview side by side. Run it on your machine; nothing is hosted as a live app.
+            A local image editor with a calm workflow — pick a preset, upload a photo,
+            generate the edit on your machine. Nothing is hosted as a live app.
           </p>
           <div class="mt-8 flex justify-center">
             <a
@@ -97,9 +97,9 @@
                 1
               </span>
               <span class="flow-connector" aria-hidden="true"></span>
-              <h3 class="font-display font-semibold text-base mb-1.5">Upload</h3>
+              <h3 class="font-display font-semibold text-base mb-1.5">Choose a preset</h3>
               <p class="text-sm text-mute leading-relaxed">
-                Choose any common image. The client confirms it is an image before sending.
+                Browse gallery previews and click the look you want applied.
               </p>
             </li>
             <li class="flow-step text-center sm:text-left px-2">
@@ -109,9 +109,9 @@
                 2
               </span>
               <span class="flow-connector" aria-hidden="true"></span>
-              <h3 class="font-display font-semibold text-base mb-1.5">Process</h3>
+              <h3 class="font-display font-semibold text-base mb-1.5">Upload &amp; generate</h3>
               <p class="text-sm text-mute leading-relaxed">
-                A local Python API applies a Gaussian blur and returns a PNG.
+                Drop in your photo, then generate — a local Python API runs the preset and returns a PNG.
               </p>
             </li>
             <li class="flow-step text-center sm:text-left px-2">
@@ -120,9 +120,9 @@
               >
                 3
               </span>
-              <h3 class="font-display font-semibold text-base mb-1.5">Preview</h3>
+              <h3 class="font-display font-semibold text-base mb-1.5">Download</h3>
               <p class="text-sm text-mute leading-relaxed">
-                Compare original and result, then download the softened file.
+                Preview the edited result and save it to your machine.
               </p>
             </li>
           </ol>
@@ -137,7 +137,7 @@
             <code class="text-white/95 font-medium">./scripts/setup.sh</code>
             then
             <code class="text-white/95 font-medium">./scripts/run.sh</code>
-            — blur your first image locally in under a minute.
+            — apply your first preset locally in under a minute.
           </p>
           <a
             href="https://github.com/ninadrathod/local-studio/fork"

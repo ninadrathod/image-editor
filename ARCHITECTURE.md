@@ -1,12 +1,13 @@
 # ARCHITECTURE.md — The Local Studio
 
-Detailed architecture for the current blur MVP.
+Detailed architecture for the preset-based local image editor.
 
 ## Goals
 
+- Let the user browse shipped presets via static gallery previews.
 - Accept a user-uploaded image in the browser.
 - Validate that the input is an image (client + server).
-- Process blur on the **server** (not in the browser canvas).
+- Apply a DB-named JSON preset on the **server** (not in the browser canvas).
 - Return binary image data and display it on the frontend.
 - Stay modular and easy to extend with more edit endpoints.
 
@@ -16,16 +17,18 @@ Detailed architecture for the current blur MVP.
 ┌──────────────────────────────────────────────────────────────┐
 │  Browser                                                     │
 │  index.html + script.js                                      │
+│    ├─ left: preset gallery from previews/presets.json        │
 │    ├─ js/image.js   → validate MIME / extension, object URLs │
-│    └─ js/api.js     → FormData POST to /api/blur             │
+│    └─ js/api.js     → FormData POST to /api/apply-preset     │
 └────────────────────────────┬─────────────────────────────────┘
-                             │ multipart/form-data (field: file)
+                             │ multipart: preset_name + file
                              ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Local FastAPI (uvicorn) on port 8000                        │
-│    routes/blur.py  → validate upload, orchestrate            │
+│    routes/preset.py → validate upload, orchestrate           │
+│    services/preset.py → DB name → JSON path → apply_preset   │
 │    services/image_io.py → decode bytes ↔ Pillow / PNG encode │
-│    services/blur.py     → GaussianBlur                       │
+│    helpers/apply_preset.py + filters.py → filter pipeline    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -33,18 +36,24 @@ Detailed architecture for the current blur MVP.
 
 ### Entry points
 
-- `index.html` — UI shell (Tailwind via CDN, custom atmosphere in `css/styles.css`).
-- `script.js` — wires DOM events (file pick, drag-drop, blur button) to helpers.
+- `index.html` — two-column UI (Tailwind via CDN, custom atmosphere in `css/styles.css`):
+  - **Left:** preset grid (post-edit preview + name); click selects a preset.
+  - **Right top:** file upload / original preview.
+  - **Right bottom:** edited result stage + **Generate edit** / **Download**.
+- `script.js` — wires gallery load, selection, file pick/drag-drop, generate button.
 - `js/image.js` — `isImageFile`, object URL create/revoke.
-- `js/api.js` — `blurImage(baseUrl, file)` → `Blob`.
+- `js/api.js` — `applyPreset(baseUrl, presetName, file)` → `Blob` (also retains `blurImage` for `/api/blur`).
 
 ### UX flow
 
-1. User selects or drops a file.
-2. Client rejects non-images and shows an inline error.
-3. Original preview uses a local object URL.
-4. On **Blur image**, the file is posted to the API; a loading state covers the result panel.
-5. Response blob is shown via another object URL; download link reuses that URL.
+1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails (entries must use a valid `preset_name` and a relative path under `previews/pre-edit/` or `previews/post-edit/`).
+2. User clicks a preset card to select it.
+3. User selects or drops a file; client rejects non-images and shows an inline error.
+4. Original preview uses a local object URL.
+5. When **both** preset and file are set, **Generate edit** enables.
+6. On generate, the file + preset name are posted to the API; a loading state covers the result panel. Changing preset/file while a request is in flight discards the stale response.
+7. Response blob is shown via another object URL; download link reuses that URL.
+8. Refresh clears all in-memory state (no persistence of upload or result).
 
 ### Config
 
@@ -54,7 +63,7 @@ Detailed architecture for the current blur MVP.
 
 - `previews/pre-edit/` — open-licensed source photo per shipped DB preset (see `previews/CREDITS.md`).
 - `previews/post-edit/` — same photo after that preset is applied.
-- `previews/presets.json` — array of `{ preset_name, pre_edit_image, post_edit_image }` (repo-relative paths). Intended for a future frontend gallery; not wired yet.
+- `previews/presets.json` — array of `{ preset_name, pre_edit_image, post_edit_image }` (repo-relative paths). Consumed by the index gallery.
 
 ### Marketing page
 
@@ -157,8 +166,8 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 
 ## Local run
 
-- `./scripts/setup.sh` creates `backend/.venv`, installs deps, and initializes the preset DB.
-- `./scripts/run.sh` starts uvicorn on `0.0.0.0:8000` and a static frontend on port `5500`.
+- `./scripts/setup.sh` creates `backend/.venv` (or recreates it if relocated/broken), installs deps, and initializes the preset DB.
+- `./scripts/run.sh` starts uvicorn on `0.0.0.0:8000` and a static frontend on port `5500` via the venv Python; fails fast if deps are missing or ports are taken.
 
 ## Documentation responsibilities
 
@@ -178,8 +187,8 @@ When features change, update these in the same change set (enforced by `.cursor/
 
 ## Helper scripts
 
-- `scripts/setup.sh` — creates `backend/.venv`, installs API + helper requirements, downloads rembg `u2net` into `~/.rembg/`, initializes `backend/database/presets.db`, ensures scripts are executable.
-- `scripts/run.sh` — starts uvicorn (port 8000) and a static file server on the repo root (port 5500); Ctrl+C stops both.
+- `scripts/setup.sh` — creates `backend/.venv` (recreates if shebangs/interpreter are broken after a folder rename), installs API + helper requirements, downloads rembg `u2net` into `~/.rembg/`, initializes `backend/database/presets.db`, ensures scripts are executable.
+- `scripts/run.sh` — starts uvicorn (port 8000) and a static file server on the repo root (port 5500) using `backend/.venv/bin/python -m …`; checks deps + free ports; Ctrl+C stops both.
 
 ## Extension points
 
