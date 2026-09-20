@@ -10,6 +10,17 @@ DB_PATH = DATABASE_DIR / "presets.db"
 SCHEMA_PATH = DATABASE_DIR / "schema.sql"
 
 
+def migrate_schema(conn: sqlite3.Connection) -> None:
+    """Add columns introduced after the original schema (existing DBs)."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(presets)").fetchall()}
+    if not cols:
+        return
+    if "ar" not in cols:
+        conn.execute(
+            "ALTER TABLE presets ADD COLUMN ar TEXT NOT NULL DEFAULT 'non-square'"
+        )
+
+
 def init_db(db_path: Path = DB_PATH) -> Path:
     """Create the database file and apply schema.sql. Returns the db path."""
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
@@ -17,6 +28,7 @@ def init_db(db_path: Path = DB_PATH) -> Path:
 
     with sqlite3.connect(db_path) as conn:
         conn.executescript(schema)
+        migrate_schema(conn)
         conn.commit()
 
     return db_path

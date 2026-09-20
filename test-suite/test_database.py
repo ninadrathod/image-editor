@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -37,6 +38,7 @@ def test_init_and_crud(tmp_path: Path) -> None:
     assert row["preset_name"] == "demo"
     assert row["preset_path"] == "backend/presets/demo.json"
     assert row["keywords"] == ["glow", "subject"]
+    assert row["ar"] == "non-square"
     assert row["created_date"]
 
     by_id = get_preset_by_id(1, db_path=db)
@@ -51,6 +53,10 @@ def test_init_and_crud(tmp_path: Path) -> None:
     assert updated is not None
     assert updated["keywords"] == ["outline", "bw"]
 
+    square = update_preset(1, ar="square", db_path=db)
+    assert square is not None
+    assert square["ar"] == "square"
+
     assert list_presets(db_path=db)[0]["preset_name"] == "demo"
     assert delete_preset(1, db_path=db) is True
     assert get_preset_by_id(1, db_path=db) is None
@@ -63,6 +69,7 @@ def test_seed_default_presets_is_idempotent(tmp_path: Path) -> None:
     second = seed_default_presets(db_path=db)
     assert len(first) == 1
     assert first[0]["preset_name"] == "bw_bg_glowing_subject"
+    assert first[0]["ar"] == "non-square"
     assert second == []
     assert len(list_presets(db_path=db)) == 1
 
@@ -90,3 +97,49 @@ def test_search_presets_by_keyword(tmp_path: Path) -> None:
     assert [r["preset_name"] for r in by_name_spaced] == ["warm_look"]
 
     assert search_presets_by_keyword("missing", db_path=db) == []
+
+
+def test_add_preset_stores_ar_and_rejects_invalid(tmp_path: Path) -> None:
+    db = tmp_path / "presets.db"
+    init_db(db)
+
+    square = add_preset(
+        "square_look",
+        "backend/presets/square.json",
+        ar="square",
+        db_path=db,
+    )
+    assert square["ar"] == "square"
+
+    try:
+        add_preset("bad", "backend/presets/bad.json", ar="wide", db_path=db)
+    except ValueError as exc:
+        assert "ar must be" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for invalid ar")
+
+
+def test_migrate_adds_ar_column_to_existing_db(tmp_path: Path) -> None:
+    db = tmp_path / "presets.db"
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            """
+            CREATE TABLE presets (
+                preset_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                preset_name TEXT NOT NULL UNIQUE,
+                preset_path TEXT NOT NULL UNIQUE,
+                keywords TEXT NOT NULL DEFAULT '[]',
+                created_date TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO presets (preset_name, preset_path, keywords) "
+            "VALUES ('legacy', 'backend/presets/legacy.json', '[]')"
+        )
+        conn.commit()
+
+    init_db(db)
+    row = get_preset_by_name("legacy", db_path=db)
+    assert row is not None
+    assert row["ar"] == "non-square"

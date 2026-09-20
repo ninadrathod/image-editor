@@ -14,6 +14,7 @@ from app.services.image_io import (
     save_png_bytes,
 )
 from app.services.preset import (
+    PresetAspectRatioError,
     PresetBusyError,
     PresetFileMissingError,
     PresetNotFoundError,
@@ -61,6 +62,8 @@ async def apply_preset_endpoint(
     except PresetFileMissingError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PresetPathUnsafeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PresetAspectRatioError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ImageTooLargeError as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from exc

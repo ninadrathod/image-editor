@@ -2,7 +2,7 @@
 
 Guide for The Local Studio JSON presets: what exists today, and how to add a new one.
 
-For the agent workflow (POC → name → keywords → ship), use the project skill
+For the agent workflow (POC → name → keywords → ar → ship), use the project skill
 `.cursor/skills/create-preset/SKILL.md`.
 
 ## Layout
@@ -43,6 +43,7 @@ Only one apply-preset job runs at a time; concurrent extras get HTTP **503**.
 
 - **Idea:** Extract subject → grayscale background → glowing **line** border on subject → composite.
 - **File:** `backend/presets/bw_bg_glowing_subject.json`
+- **AR:** `non-square` (any aspect ratio)
 - **DB:** seeded via `seed_default_presets()` / setup
 
 ## Built-in filters
@@ -68,6 +69,7 @@ Layers are named images in memory. Typical keys: `image`, `subject`, `background
   "name": "example_name",
   "label": "Human label",
   "description": "What this look does.",
+  "ar": "non-square",
   "steps": [
     {
       "filter": "extract_subject",
@@ -98,6 +100,7 @@ Rules of thumb:
 1. Always end with a `composite` (or other step) that writes `as: "image"`.
 2. Apply background edits with `"on": "background"`; subject edits with `"on": "subject"`.
 3. Prefer `glow_line_border` when you want an outline, not a filled glow.
+4. Set `"ar": "square"` when the recipe only works on square images; `"ar": "non-square"` (default) works on any aspect ratio. A square-only preset applied to a non-square image raises `PresetAspectRatioError`.
 
 ## Database metadata
 
@@ -109,6 +112,7 @@ Table `presets` in `backend/database/presets.db`:
 | `preset_name` | Unique name (usually matches JSON `name` / filename stem) |
 | `preset_path` | Repo-relative path, e.g. `backend/presets/foo.json` |
 | `keywords` | JSON list of search tags (also searched with `preset_name` by `GET /api/presets/search?q=…`) |
+| `ar` | `square` (square-only) or `non-square` (any aspect ratio; default) |
 | `created_date` | Auto timestamp |
 
 ```bash
@@ -129,12 +133,13 @@ print(search_presets_by_keyword("glow"))
 3. Review temporary POC outputs under `/tmp` and pick one recipe.
 4. Pick a final `snake_case` preset name.
 5. Finalize the keywords list.
-6. Agent then ships code:
+6. Finalize `ar`: `square` (square-only) or `non-square` (any aspect ratio).
+7. Agent then ships code:
    - adds helpers/filters only if needed
-   - writes `backend/presets/<name>.json`
-   - inserts a row with `add_preset(...)`
+   - writes `backend/presets/<name>.json` (include `"ar": "square"` or `"non-square"`)
+   - inserts a row with `add_preset(..., ar=...)`
    - updates this file + CONTEXT/ARCHITECTURE (+ tests if needed)
-7. Gallery previews (gated — see create-preset skill step 6):
+8. Gallery previews (gated — see create-preset skill step 7):
    - search open-licensed candidates that suit the preset
    - crop square + downsample to **720×720**
    - apply preset and let you pick the best preview

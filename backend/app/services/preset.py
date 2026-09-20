@@ -36,6 +36,10 @@ class PresetBusyError(RuntimeError):
     """Raised when the concurrent preset job limit is already reached."""
 
 
+class PresetAspectRatioError(ValueError):
+    """Raised when a square-only preset is applied to a non-square image."""
+
+
 class PresetJobLimiter:
     """Non-blocking concurrency gate for CPU-heavy preset work."""
 
@@ -164,7 +168,10 @@ def apply_named_preset(
         presets_dir=presets_dir,
     )
     apply_preset_mod = _helpers_apply_preset()
-    return apply_preset_mod.apply_preset(image, preset_path)
+    try:
+        return apply_preset_mod.apply_preset(image, preset_path)
+    except apply_preset_mod.PresetAspectRatioError as exc:
+        raise PresetAspectRatioError(str(exc)) from exc
 
 
 async def run_preset_job(

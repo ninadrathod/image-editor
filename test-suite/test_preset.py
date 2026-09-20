@@ -10,6 +10,7 @@ import pytest
 from PIL import Image
 
 from app.services.preset import (
+    PresetAspectRatioError,
     PresetBusyError,
     PresetFileMissingError,
     PresetJobLimiter,
@@ -33,17 +34,20 @@ def _make_repo(tmp_path: Path) -> tuple[Path, Path, Path]:
     return repo_root, db_path, presets_dir
 
 
-def _write_gray_preset(presets_dir: Path, name: str = "simple_gray") -> Path:
+def _write_gray_preset(
+    presets_dir: Path,
+    name: str = "simple_gray",
+    *,
+    ar: str | None = None,
+) -> Path:
     preset_json = presets_dir / f"{name}.json"
-    preset_json.write_text(
-        json.dumps(
-            {
-                "name": name,
-                "steps": [{"filter": "grayscale", "on": "image"}],
-            }
-        ),
-        encoding="utf-8",
-    )
+    payload: dict = {
+        "name": name,
+        "steps": [{"filter": "grayscale", "on": "image"}],
+    }
+    if ar is not None:
+        payload["ar"] = ar
+    preset_json.write_text(json.dumps(payload), encoding="utf-8")
     return preset_json
 
 
@@ -192,3 +196,32 @@ def test_run_preset_job_raises_busy_when_slot_taken(tmp_path: Path) -> None:
         assert result.size == source.size
 
     asyncio.run(_run())
+
+
+def test_apply_named_preset_rejects_non_square_for_square_ar(tmp_path: Path) -> None:
+    repo_root, db_path, presets_dir = _make_repo(tmp_path)
+    _write_gray_preset(presets_dir, "square_only", ar="square")
+    add_preset(
+        "square_only",
+        "backend/presets/square_only.json",
+        ar="square",
+        db_path=db_path,
+    )
+
+    wide = Image.new("RGB", (12, 8), color=(200, 40, 40))
+    with pytest.raises(PresetAspectRatioError, match="square"):
+        apply_named_preset(
+            wide,
+            "square_only",
+            db_path=db_path,
+            repo_root=repo_root,
+        )
+
+    square = Image.new("RGB", (8, 8), color=(200, 40, 40))
+    result = apply_named_preset(
+        square,
+        "square_only",
+        db_path=db_path,
+        repo_root=repo_root,
+    )
+    assert result.size == square.size

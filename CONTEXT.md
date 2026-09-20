@@ -55,26 +55,28 @@ Repo: https://github.com/ninadrathod/local-studio
 - Health check: `GET /health`
 - Blur endpoint: `POST /api/blur` (multipart field name: `file`)
 - Apply-preset endpoint: `POST /api/apply-preset` (multipart fields: `preset_name`, `file`) → PNG
-- Preset search: `GET /api/presets/search?q=…` → JSON list of `{ preset_name, keywords }` (matches name or keywords)
+- Preset search: `GET /api/presets/search?q=…` → JSON list of `{ preset_name, keywords, ar }` (matches name or keywords)
 - Upload caps (blur + apply-preset): 20 MiB body, max side 8000 px / 25M pixels; preset JSON paths must stay under `backend/presets/`
 - Apply-preset concurrency: 1 in-flight job (extra requests get **503**)
 
 ## Current scope
 
-- Preset gallery (left, ~65% width on desktop): search + post-edit thumbnails from `previews/presets.json`; hover/focus reveals pre-edit original; click to select
+- Preset gallery (left, ~65% width on desktop): search + **Input square?** yes/no switch + post-edit thumbnails from `previews/presets.json`; hover/focus reveals pre-edit original; click to select
 - Search filters the gallery in place via realtime `GET /api/presets/search?q=…` (DB `preset_name` + `keywords`)
+- **Input square?** **Yes** shows all presets; **No** hides `ar=square` presets
 - Image upload (right, ~35% width on desktop): client-side type check + preview
 - Studio UI uses the full browser viewport (no page scroll); the preset gallery scrolls internally when needed
 - Generate edit when both preset + file are set → `POST /api/apply-preset` → result + download
+- Applying a `ar=square` preset to a non-square image fails with HTTP **400**
 - Session state is in-memory only (refresh clears upload + edited result)
-- Gallery only accepts `preset_name` + relative `previews/pre-edit|post-edit/…` paths from `presets.json`
+- Gallery only accepts `preset_name` + `ar` (`square` / `non-square`) + relative `previews/pre-edit|post-edit/…` paths from `presets.json`
 - Server-side Gaussian blur still available via `POST /api/blur` (not the primary UI flow)
 
 Optional helpers:
 - `backend/helpers/extract_subject.py` — background removal (rembg / `u2net`)
 - `backend/helpers/apply_preset.py` — run a JSON preset from `backend/presets/` (also used by the apply-preset API)
 - Example presets: `bw_bg_glowing_subject`
-- `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
+- `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords, `ar`). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
 - `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); wired into the index UI gallery
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
 - To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/`

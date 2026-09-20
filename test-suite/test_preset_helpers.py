@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +16,13 @@ if str(HELPERS) not in sys.path:
     sys.path.insert(0, str(HELPERS))
 
 import filters as F  # noqa: E402
-from apply_preset import apply_steps, load_preset, resolve_preset_path  # noqa: E402
+from apply_preset import (  # noqa: E402
+    PresetAspectRatioError,
+    apply_preset,
+    apply_steps,
+    load_preset,
+    resolve_preset_path,
+)
 
 
 def test_resolve_preset_by_name() -> None:
@@ -26,6 +34,7 @@ def test_preset_files_have_steps() -> None:
     data = load_preset(PRESETS / "bw_bg_glowing_subject.json")
     assert data["steps"]
     assert data["steps"][0]["filter"] == "extract_subject"
+    assert data.get("ar") == "non-square"
 
 
 def test_grayscale_and_composite() -> None:
@@ -65,3 +74,25 @@ def test_apply_steps_without_extract() -> None:
     ]
     out = apply_steps(image, steps)
     assert out.size == (24, 24)
+
+
+def test_apply_preset_square_ar_requires_square_image(tmp_path: Path) -> None:
+    preset = tmp_path / "square_only.json"
+    preset.write_text(
+        json.dumps(
+            {
+                "name": "square_only",
+                "ar": "square",
+                "steps": [{"filter": "grayscale", "on": "image"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    wide = Image.new("RGB", (10, 6), (1, 2, 3))
+    with pytest.raises(PresetAspectRatioError, match="square"):
+        apply_preset(wide, preset)
+
+    square = Image.new("RGB", (6, 6), (1, 2, 3))
+    out = apply_preset(square, preset)
+    assert out.size == (6, 6)
