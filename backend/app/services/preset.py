@@ -40,6 +40,10 @@ class PresetAspectRatioError(ValueError):
     """Raised when a square-only preset is applied to a non-square image."""
 
 
+class PresetTextError(ValueError):
+    """Raised when user text is missing or exceeds the preset's character limit."""
+
+
 class PresetJobLimiter:
     """Non-blocking concurrency gate for CPU-heavy preset work."""
 
@@ -156,6 +160,7 @@ def apply_named_preset(
     image: Image.Image,
     preset_name: str,
     *,
+    text: str | None = None,
     db_path: Path | None = None,
     repo_root: Path = REPO_ROOT,
     presets_dir: Path | None = None,
@@ -169,15 +174,18 @@ def apply_named_preset(
     )
     apply_preset_mod = _helpers_apply_preset()
     try:
-        return apply_preset_mod.apply_preset(image, preset_path)
+        return apply_preset_mod.apply_preset(image, preset_path, text=text)
     except apply_preset_mod.PresetAspectRatioError as exc:
         raise PresetAspectRatioError(str(exc)) from exc
+    except apply_preset_mod.PresetTextError as exc:
+        raise PresetTextError(str(exc)) from exc
 
 
 async def run_preset_job(
     image: Image.Image,
     preset_name: str,
     *,
+    text: str | None = None,
     limiter: PresetJobLimiter | None = None,
     db_path: Path | None = None,
     repo_root: Path = REPO_ROOT,
@@ -195,6 +203,7 @@ async def run_preset_job(
             apply_named_preset,
             image,
             preset_name,
+            text=text,
             db_path=db_path,
             repo_root=repo_root,
             presets_dir=presets_dir,

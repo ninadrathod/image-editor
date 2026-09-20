@@ -19,6 +19,19 @@ def migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute(
             "ALTER TABLE presets ADD COLUMN ar TEXT NOT NULL DEFAULT 'non-square'"
         )
+    if "text_input" not in cols:
+        conn.execute(
+            "ALTER TABLE presets ADD COLUMN text_input TEXT NOT NULL DEFAULT 'no'"
+        )
+    if "default_text" not in cols:
+        conn.execute(
+            "ALTER TABLE presets ADD COLUMN default_text TEXT NOT NULL DEFAULT ''"
+        )
+    if "text_character_limit" not in cols:
+        conn.execute(
+            "ALTER TABLE presets ADD COLUMN text_character_limit "
+            "INTEGER NOT NULL DEFAULT 0"
+        )
 
 
 def init_db(db_path: Path = DB_PATH) -> Path:

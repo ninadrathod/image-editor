@@ -16,6 +16,7 @@ from app.services.preset import (
     PresetJobLimiter,
     PresetNotFoundError,
     PresetPathUnsafeError,
+    PresetTextError,
     apply_named_preset,
     resolve_preset_file,
     run_preset_job,
@@ -225,3 +226,74 @@ def test_apply_named_preset_rejects_non_square_for_square_ar(tmp_path: Path) -> 
         repo_root=repo_root,
     )
     assert result.size == square.size
+
+
+def _write_caption_preset(presets_dir: Path, name: str = "caption_look") -> Path:
+    preset_json = presets_dir / f"{name}.json"
+    preset_json.write_text(
+        json.dumps(
+            {
+                "name": name,
+                "text_input": "yes",
+                "default_text": "Hi",
+                "text_character_limit": 8,
+                "steps": [
+                    {
+                        "filter": "draw_text",
+                        "on": "image",
+                        "text": "$text",
+                        "font_size": 20,
+                        "color": [255, 255, 255],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return preset_json
+
+
+def test_apply_named_preset_binds_user_text(tmp_path: Path) -> None:
+    repo_root, db_path, presets_dir = _make_repo(tmp_path)
+    _write_caption_preset(presets_dir)
+    add_preset(
+        "caption_look",
+        "backend/presets/caption_look.json",
+        text_input="yes",
+        default_text="Hi",
+        text_character_limit=8,
+        db_path=db_path,
+    )
+
+    source = Image.new("RGB", (64, 64), color=(0, 0, 0))
+    result = apply_named_preset(
+        source,
+        "caption_look",
+        text="ABC",
+        db_path=db_path,
+        repo_root=repo_root,
+    )
+    assert result.convert("L").getextrema()[1] > 0
+
+
+def test_apply_named_preset_rejects_text_over_limit(tmp_path: Path) -> None:
+    repo_root, db_path, presets_dir = _make_repo(tmp_path)
+    _write_caption_preset(presets_dir)
+    add_preset(
+        "caption_look",
+        "backend/presets/caption_look.json",
+        text_input="yes",
+        default_text="Hi",
+        text_character_limit=8,
+        db_path=db_path,
+    )
+
+    source = Image.new("RGB", (32, 32), color=(0, 0, 0))
+    with pytest.raises(PresetTextError, match="at most 8"):
+        apply_named_preset(
+            source,
+            "caption_look",
+            text="123456789",
+            db_path=db_path,
+            repo_root=repo_root,
+        )
