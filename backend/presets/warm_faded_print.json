@@ -1,0 +1,20 @@
+{
+  "name": "warm_faded_print",
+  "label": "Warm faded print",
+  "description": "Softer contrast, muted color, and a cream-amber wash — like a sun-faded color photograph.",
+  "ar": "non-square",
+  "text_input": "no",
+  "default_text": "",
+  "text_character_limit": 0,
+  "steps": [
+    { "filter": "contrast", "on": "image", "amount": 0.88 },
+    { "filter": "color", "on": "image", "amount": 0.62 },
+    { "filter": "brightness", "on": "image", "amount": 1.08 },
+    {
+      "filter": "overlay",
+      "on": "image",
+      "color": [210, 165, 110],
+      "alpha": 0.22
+    }
+  ]
+}

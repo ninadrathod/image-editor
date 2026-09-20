@@ -55,11 +55,27 @@ def _font_candidates(style: str) -> tuple[str, ...]:
     return _SANS_FONT_CANDIDATES
 
 
+def _truetype(path: str, size: int) -> ImageFont.ImageFont:
+    try:
+        return ImageFont.truetype(path, size)
+    except OSError:
+        return ImageFont.truetype(path, size, index=0)
+
+
 @lru_cache(maxsize=32)
-def _load_font(size: int, style: str = "sans") -> ImageFont.ImageFont:
+def _load_font(
+    size: int,
+    style: str = "sans",
+    font_path: str | None = None,
+) -> ImageFont.ImageFont:
+    if font_path:
+        try:
+            return _truetype(font_path, size)
+        except OSError as exc:
+            raise ValueError(f"Could not load font: {font_path}") from exc
     for path in _font_candidates(style):
         try:
-            return ImageFont.truetype(path, size)
+            return _truetype(path, size)
         except OSError:
             continue
     return ImageFont.load_default()
@@ -248,6 +264,7 @@ def draw_text(
     y: int | None = None,
     align: str = "center",
     font_style: str = "sans",
+    font_path: str | None = None,
     stroke_width: int = 0,
     stroke_color: Sequence[int] | None = None,
     margin: int = 16,
@@ -258,6 +275,8 @@ def draw_text(
     `align`: `center`, `top`, `bottom`, `top_right`, `top_left`, `bottom_center`
     (ignored when both `x` and `y` are set — then those are top-left).
     `font_style`: `sans` (default) or `flow` / `script` for handwriting look.
+    `font_path`: optional `.ttf` / `.otf` / `.ttc` file; when set, it is used
+    instead of `font_style`.
     """
     value = "" if text is None else str(text)
     if not value:
@@ -274,7 +293,8 @@ def draw_text(
 
     size = max(8, int(font_size))
     style = (font_style or "sans").strip().lower()
-    font = _load_font(size, style)
+    path = str(font_path).strip() if font_path else None
+    font = _load_font(size, style, path or None)
     draw = ImageDraw.Draw(canvas)
     max_width = int(canvas.size[0] * 0.9)
     for _ in range(12):
@@ -283,7 +303,7 @@ def draw_text(
         if text_w <= max_width or size <= 8:
             break
         size = max(8, size - 4)
-        font = _load_font(size, style)
+        font = _load_font(size, style, path or None)
 
     draw_kwargs: dict = {
         "font": font,

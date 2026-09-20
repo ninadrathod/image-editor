@@ -20,12 +20,13 @@ Repo: https://github.com/ninadrathod/local-studio
 |------|------|
 | `index.html`, `script.js`, `js/`, `css/`, `icons/` | Frontend UI |
 | `previews/` | Preset gallery assets: `pre-edit/` + `post-edit/` (before/after per DB preset) + `presets.json` |
+| `previews/_candidates/` | Gitignored create-preset comparison HTML (POC edits, fonts, gallery picks) — not shipped |
 | `docs/` | GitHub Pages pitch site (`docs/index.html` + local css/icons) |
 | `backend/` | FastAPI app |
 | `backend/helpers/` | CLI helpers: subject extraction + JSON preset runner |
 | `backend/presets/` | JSON image presets (ordered filter steps); see `PRESETS.md` |
 | `backend/database/` | SQLite preset metadata (`presets.db` + `db_ops.py`) |
-| `.cursor/skills/create-preset/` | Skill: gated workflow to design and ship a new preset |
+| `.cursor/skills/create-preset/` | Skill: gated workflow to design and ship a new preset (visual rounds → `previews/_candidates/`) |
 | `test-suite/` | Unit tests for backend **service functions** (not HTTP/API) |
 | `.github/workflows/` | CI (runs `test-suite/` on PRs) |
 | `scripts/setup.sh` | Full local setup (venv + deps) |
@@ -76,11 +77,11 @@ Repo: https://github.com/ninadrathod/local-studio
 Optional helpers:
 - `backend/helpers/extract_subject.py` — background removal (rembg / `u2net`)
 - `backend/helpers/apply_preset.py` — run a JSON preset from `backend/presets/` (also used by the apply-preset API)
-- Example presets: `bw_bg_glowing_subject`, `polaroid_memory` (square-only; optional caption via `text_input`)
+- Example presets: `bw_bg_glowing_subject`, `polaroid_memory` (square-only; optional caption via `text_input`), `warm_faded_print` (any aspect ratio; sun-faded color grade)
 - `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords, `ar`, `text_input`, `default_text`, `text_character_limit`). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
 - `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); wired into the index UI gallery
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
-- To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/`
+- To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/` (visual option rounds write `previews/_candidates/<round>/index.html` via `scripts/render_candidates.py`, which calls `apply_preset` + `draw_text`)
 - To commit locally without pushing and get PR title/description copy, use skill `.cursor/skills/commit-draft-pr/`
 - To remove unused/redundant code without changing UI or workflows, use skill `.cursor/skills/prune-unused-code/`
 

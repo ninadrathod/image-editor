@@ -4,7 +4,8 @@ description: >-
   Create a new JSON preset for The Local Studio from a plain-language request (and
   optional reference images). Runs a gated POC → name → keywords → ar → text_input →
   ship → gallery preview workflow into backend/presets/, helpers/, the SQLite presets
-  database, and previews/. Use when the user asks to create a preset, add a new
+  database, and previews/. Visual option rounds write comparison HTML under
+  previews/_candidates/. Use when the user asks to create a preset, add a new
   look/filter recipe, design an image effect pipeline, or follow the
   create-preset skill.
 disable-model-invocation: true
@@ -23,13 +24,14 @@ current helpers, filters, shipped presets, and JSON step format.
 ```
 Create-preset progress:
 - [ ] 1. Understand the request (and any reference images)
-- [ ] 2. Temporary POC presets + sample output images (user picks one)
+- [ ] 2. Temporary POC presets + _candidates HTML (user picks one)
 - [ ] 3. Propose preset names (user picks one)
 - [ ] 4. Propose keywords (user finalizes the list)
 - [ ] 5. Confirm `ar`: `square` (square-only) or `non-square` (any aspect ratio)
 - [ ] 6. Confirm text input: `text_input` yes/no (+ default_text + text_character_limit if yes)
+- [ ] 6b. Font options via _candidates HTML (only if the look uses draw_text)
 - [ ] 7. Ship: helpers (if needed) + presets/*.json + database row + docs/tests
-- [ ] 8. Gallery previews: search → square 720 → apply → user picks → ship assets
+- [ ] 8. Gallery previews: search → _candidates HTML → user picks → ship assets
 ```
 
 ## How the user will ask
@@ -46,6 +48,47 @@ I will tell what I want in plain language (may also provide some reference image
 - after all of this is finalized, create any helper scripts in helper/ if necessary, add the preset json to presets/, create an entry for this new preset in the database.
 - then find open-licensed candidate photos that suit the new preset, prepare square 720×720 previews, show me the applied results, and only after I pick one write `previews/pre-edit/`, `previews/post-edit/`, and `previews/presets.json`.
 
+## Visual options (`previews/_candidates/`)
+
+Whenever you present **visual** choices (POC edits, fonts, gallery photos, color/layout variants), **first** write a comparison page, **then** ask the user to pick a letter. Do not ask them to approve options they have not been able to open.
+
+Text-only gates (preset names, keywords, `ar`, `text_input` / `default_text` / limit) do **not** need HTML.
+
+### Rules
+
+- Root: `previews/_candidates/<round>/` with `index.html` + the images for that round. Rounds: `poc`, `fonts`, `gallery`, or another short slug (`poc-2`, `glow-color`).
+- Use [scripts/render_candidates.py](scripts/render_candidates.py). It calls existing helpers — `apply_preset.apply_preset_file` and `filters.draw_text`. Do **not** reimplement apply, text drawing, or a one-off HTML file.
+- Run with `backend/.venv/bin/python` from the repo root. Pass `--open` so the page launches.
+- Tell the user the path (`previews/_candidates/<round>/index.html`) and wait for a letter (`A` / `B` / …).
+- This directory is gitignored scratch. Never copy it into `backend/presets/` or shipped `previews/pre-edit/` / `previews/post-edit/` until the user finalizes. After gallery ships, delete `previews/_candidates/`.
+
+### Commands
+
+```bash
+# POC drafts (apply_preset.py per JSON)
+backend/.venv/bin/python .cursor/skills/create-preset/scripts/render_candidates.py poc \
+  --input SAMPLE.jpg --outdir previews/_candidates/poc --text "Sample" --open \
+  A=previews/_candidates/poc/draft_a.json B=previews/_candidates/poc/draft_b.json
+
+# Fonts (filters.draw_text). Prefer font_style values the preset can ship (`sans`, `flow`).
+backend/.venv/bin/python .cursor/skills/create-preset/scripts/render_candidates.py fonts \
+  --text "instant memory" --image previews/_candidates/poc/A.png \
+  --align bottom --outdir previews/_candidates/fonts --open \
+  A=sans B=flow
+
+# Gallery before/after (square crop → 720 → apply_preset.py)
+backend/.venv/bin/python .cursor/skills/create-preset/scripts/render_candidates.py gallery \
+  --preset FINAL_NAME --outdir previews/_candidates/gallery --text "caption" --open \
+  --note A="CC0, Photographer, Wikimedia" \
+  --crop A=left --crop B=top \
+  A=previews/_candidates/gallery/src/a.jpg B=previews/_candidates/gallery/src/b.jpg
+
+# Already-rendered variants
+backend/.venv/bin/python .cursor/skills/create-preset/scripts/render_candidates.py html \
+  --title "Glow color" --outdir previews/_candidates/glow-color --open \
+  --original SAMPLE.jpg A=red.png B=cyan.png
+```
+
 ## Step details
 
 ### 1. Understand
@@ -60,22 +103,13 @@ I will tell what I want in plain language (may also provide some reference image
 
 ### 2. Temporary POC presets + preview images
 
-- Branch safety: if on `main`/`master`, create a feature branch before any repo edits. POC files may live only under `/tmp`.
-- Write **2–3** draft preset JSON files under `/tmp/local-studio-preset-poc/<slug>/` (not under `backend/presets/` yet).
+- Branch safety: if on `main`/`master`, create a feature branch before any repo edits.
+- Write **2–3** draft preset JSON files under `previews/_candidates/poc/` (not under `backend/presets/` yet).
 - Include `text_input` / `default_text` / `text_character_limit` in drafts when the look needs text; use `"text": "$text"` (or another `$text` param) in the step that consumes it.
-- Apply each draft with:
-
-```bash
-source backend/.venv/bin/activate
-python backend/helpers/apply_preset.py INPUT.jpg -p /tmp/.../draft_a.json -o /tmp/.../out_a.png
-# If text_input=yes:
-python backend/helpers/apply_preset.py INPUT.jpg -p /tmp/.../draft_a.json --text "Sample" -o /tmp/.../out_a.png
-```
-
-- If the user did not provide an input image, use a clear sample (or a prior `/tmp` POC photo) and say which file you used.
+- If the user did not provide an input image, use a clear sample (or a prior candidate photo) and say which file you used.
 - If a draft is square-only (`"ar": "square"`), apply it to a **square** sample. A non-square input will error.
-- Show the user: draft JSON summary (steps + text fields if any) **and** the output images (Read the PNGs so they render in chat).
-- Wait until the user **finalizes one** draft. Do not propose DB names yet.
+- Render + open the comparison page with `render_candidates.py poc` (that runs `apply_preset_file`). Optional extra rounds (`html` / another `poc` outdir) if you are varying color, border, or layout.
+- Wait until the user **finalizes one** draft (a letter from the HTML). Do not propose DB names yet.
 
 ### 3. Preset names
 
@@ -102,7 +136,13 @@ python backend/helpers/apply_preset.py INPUT.jpg -p /tmp/.../draft_a.json --text
 - When `text_input` is `yes`, at least one step must use `"$text"` in a string parameter (typically `"text": "$text"` on `draw_text`).
 - Wait until the user **finalizes** these fields. JSON, DB (`add_preset`), and `previews/presets.json` must all match.
 
-### 7. Ship (only after 2–6 are finalized)
+### 6b. Fonts (only if a step uses `draw_text`)
+
+- Offer **2–4** options the runner can actually use: `font_style` `sans` or `flow` (via `filters.draw_text`), or a specific `.ttf` path via `font_path` (same helper; add that file to `_font_candidates` if you later ship it as a style).
+- Render + open `previews/_candidates/fonts/index.html` with `render_candidates.py fonts` (always `filters.draw_text`). Prefer the chosen POC output as `--image` so the type sits on the look. Match caption placement with `--align` when needed.
+- Wait until the user **finalizes one** letter. Ship that `font_style` (or register the TTF in `filters.py` if they picked a file).
+
+### 7. Ship (only after 2–6b are finalized)
 
 1. Add any new filter ops under `backend/helpers/filters.py` and register them in `backend/helpers/apply_preset.py` `FILTERS` (use `_run_simple` for single-layer ops). Keep helpers modular. Do not add per-filter if/else in the API or the step runner.
 2. Write `backend/presets/<final_name>.json` with `name`, `label`, `description`, `ar` (`square` or `non-square`), `text_input` (`yes` or `no`), `default_text`, `text_character_limit`, and `steps`. Each step’s `"filter"` is the helper function name; remaining keys are that helper’s parameters. Use `"$text"` in a param when the step should receive the user string.
@@ -137,21 +177,22 @@ Do **not** write gallery assets under `previews/` in this step — that is step 
 Understand what the shipped preset does, then pick photos where that effect actually looks good (subject cutout, color vs B&W, silhouette + glow, caption placement, etc.). Subject matter can be anything that fits the look — scenic, street, portrait, poster/music-cover vibe — not limited to landscapes.
 
 1. **Search** for several **open-licensed** photographs on the internet that would show this preset well. Prefer CC0 / CC BY / CC BY-SA (e.g. Wikimedia Commons) or other clearly free licenses. Never use unlicensed stock. Verify license + photographer/source for each candidate.
-2. **Prepare** each candidate: crop to a square (crop excess from one side so composition stays strong), then downsample to **720×720**. Keep work under `/tmp` or `previews/_candidates/` until the user picks — do not overwrite shipped `pre-edit/` / `post-edit/` yet.
-3. **Apply** the shipped preset to each prepared square (use `--text` with the finalized `default_text` or a short sample when `text_input=yes`), show the user the results (and optionally originals), and **ask which image is best** for the gallery preview. Wait for the user to finalize one letter/candidate.
+2. **Download** into `previews/_candidates/gallery/src/` (do not overwrite shipped `pre-edit/` / `post-edit/` yet).
+3. **Render** with `render_candidates.py gallery` (square-crop → **720×720** → `apply_preset_file` on the shipped preset; pass `--text` when `text_input=yes`). Default crop is **center**. If the subject sits off-center, pass `--crop A=left` / `right` / `top` / `bottom` so the kept square still frames it. Open the HTML and **ask which letter is best**. Wait for the user to finalize one.
 4. **Once finalized**, write:
    - `previews/pre-edit/<final_name>.*` — the chosen square 720×720 source
    - `previews/post-edit/<final_name>.png` — same crop after the preset
    - append `{ "preset_name", "ar", "text_input", "default_text", "text_character_limit", "pre_edit_image", "post_edit_image" }` to `previews/presets.json`
    - record source + photographer + license in `previews/CREDITS.md`
-   - remove any temporary `previews/_candidates/` (or `/tmp` POC) files used for comparison
+   - delete `previews/_candidates/`
 
 ## Rules
 
 - Never commit rembg/ONNX weights; models stay in `~/.rembg/`.
 - Do not invent extra HTTP routes unless asked — apply by DB name via existing `POST /api/apply-preset` (optional multipart `text` when needed).
-- Do not finalize name/keywords/`ar`/text fields/DB/files/gallery assets before the user confirms each gate.
+- Do not finalize name/keywords/`ar`/text fields/fonts/DB/files/gallery assets before the user confirms each gate.
 - Keep `ar` and text-input fields in sync across preset JSON, `add_preset(...)`, and `previews/presets.json`.
 - Gallery previews must be open-licensed, square **720×720**, with matching pre-edit and post-edit crops.
 - If a needed look cannot be done with current filters, say so in step 1–2 and propose a small new helper filter before POC.
 - Studio UX assumes **select preset first**, then upload; presets with `text_input=yes` show a constrained text field before generate.
+- Prefer `backend/helpers/apply_preset.py`, `filters.py` (`draw_text`, `_font_candidates`), `extract_subject.py`, and `database/db_ops.py` over new one-off scripts.

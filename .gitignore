@@ -12,6 +12,9 @@ node_modules/
 .idea/
 .vscode/
 
+# create-preset comparison pages (POC / fonts / gallery) — never ship
+previews/_candidates/
+
 # rembg / ONNX model weights — download via setup, never commit
 .rembg/
 **/*.onnx
