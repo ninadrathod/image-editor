@@ -12,11 +12,13 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .init_db import DB_PATH, init_db
+    from .init_db import DB_PATH, init_db, migrate_schema
 except ImportError:  # running as a script inside backend/database/
-    from init_db import DB_PATH, init_db
+    from init_db import DB_PATH, init_db, migrate_schema
 
 TABLE_NAME = "presets"
+DEFAULT_AR = "non-square"
+VALID_AR = frozenset({"square", "non-square"})
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
@@ -25,7 +27,16 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
         init_db(db_path)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    migrate_schema(conn)
+    conn.commit()
     return conn
+
+
+def _normalize_ar(value: str | None) -> str:
+    text = (DEFAULT_AR if value is None else str(value)).strip().lower()
+    if text not in VALID_AR:
+        raise ValueError("ar must be 'square' or 'non-square'")
+    return text
 
 
 def _keywords_to_json(keywords: list[str] | None) -> str:
@@ -50,11 +61,18 @@ def _keywords_from_json(raw: str | None) -> list[str]:
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
+    keys = set(row.keys())
+    raw_ar = row["ar"] if "ar" in keys else None
+    try:
+        ar = _normalize_ar(raw_ar)
+    except ValueError:
+        ar = DEFAULT_AR
     return {
         "preset_id": row["preset_id"],
         "preset_name": row["preset_name"],
         "preset_path": row["preset_path"],
         "keywords": _keywords_from_json(row["keywords"]),
+        "ar": ar,
         "created_date": row["created_date"],
     }
 
@@ -63,6 +81,7 @@ def add_preset(
     preset_name: str,
     preset_path: str,
     keywords: list[str] | None = None,
+    ar: str = DEFAULT_AR,
     *,
     db_path: Path = DB_PATH,
 ) -> dict[str, Any]:
@@ -73,14 +92,15 @@ def add_preset(
         raise ValueError("preset_name is required")
     if not path:
         raise ValueError("preset_path is required")
+    ar_value = _normalize_ar(ar)
 
     with get_connection(db_path) as conn:
         cur = conn.execute(
             f"""
-            INSERT INTO {TABLE_NAME} (preset_name, preset_path, keywords)
-            VALUES (?, ?, ?)
+            INSERT INTO {TABLE_NAME} (preset_name, preset_path, keywords, ar)
+            VALUES (?, ?, ?, ?)
             """,
-            (name, path, _keywords_to_json(keywords)),
+            (name, path, _keywords_to_json(keywords), ar_value),
         )
         conn.commit()
         preset_id = int(cur.lastrowid)
@@ -150,6 +170,7 @@ def update_preset(
     preset_name: str | None = None,
     preset_path: str | None = None,
     keywords: list[str] | None = None,
+    ar: str | None = None,
     db_path: Path = DB_PATH,
 ) -> dict[str, Any] | None:
     """Partial update. Returns the updated row, or None if missing."""
@@ -171,6 +192,9 @@ def update_preset(
     if keywords is not None:
         fields.append("keywords = ?")
         values.append(_keywords_to_json(keywords))
+    if ar is not None:
+        fields.append("ar = ?")
+        values.append(_normalize_ar(ar))
 
     if not fields:
         return get_preset_by_id(preset_id, db_path=db_path)
@@ -212,6 +236,7 @@ def seed_default_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
                 "subject",
                 "border",
             ],
+            "ar": "non-square",
         },
     ]
     created: list[dict[str, Any]] = []
@@ -223,6 +248,7 @@ def seed_default_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
                     item["preset_name"],
                     item["preset_path"],
                     item["keywords"],
+                    item.get("ar", DEFAULT_AR),
                     db_path=db_path,
                 )
             )

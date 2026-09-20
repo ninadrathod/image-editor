@@ -23,6 +23,7 @@ const els = {
   selectedPresetLabel: document.getElementById("selected-preset-label"),
   presetSearch: document.getElementById("preset-search"),
   presetReset: document.getElementById("preset-reset"),
+  squareFilter: document.getElementById("square-filter"),
   searchError: document.getElementById("search-error"),
   input: document.getElementById("image-input"),
   dropZone: document.getElementById("drop-zone"),
@@ -50,12 +51,16 @@ let editedUrl = null;
 let generateGeneration = 0;
 /** Nested dragenter counter so child nodes don't flicker the drop highlight. */
 let dragDepth = 0;
-/** @type {Array<{ preset_name: string, pre_edit_image: string, post_edit_image: string }>} */
+/** @type {Array<{ preset_name: string, ar: string, pre_edit_image: string, post_edit_image: string }>} */
 let allGalleryPresets = [];
 /** Bumped on each search keystroke — ignores stale responses. */
 let searchGeneration = 0;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let searchDebounceTimer = null;
+/** Last search match names; `null` means no search filter. */
+let searchMatchNames = null;
+/** When false, hide square-only presets. Default yes → show all. */
+let inputImageIsSquare = true;
 
 function formatPresetLabel(name) {
   return String(name || "")
@@ -69,6 +74,14 @@ function formatPresetLabel(name) {
  */
 function isValidPresetName(name) {
   return typeof name === "string" && PRESET_NAME_RE.test(name);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {"square"|"non-square"}
+ */
+function normalizeAr(value) {
+  return value === "square" ? "square" : "non-square";
 }
 
 /**
@@ -240,6 +253,18 @@ async function handleGenerate() {
   const token = ++generateGeneration;
 
   clearError(els.apiError);
+
+  const selected = allGalleryPresets.find((p) => p.preset_name === presetName);
+  const uploadedIsSquare = isPreviewImageSquare();
+  if (
+    selected &&
+    selected.ar === "square" &&
+    uploadedIsSquare === false
+  ) {
+    showError(els.apiError, "This preset only applies to square images.");
+    return;
+  }
+
   setLoading(true);
 
   try {
@@ -314,9 +339,17 @@ function createPresetCard(preset) {
   return button;
 }
 
+function isPreviewImageSquare() {
+  const img = els.previewOriginal;
+  if (!img || img.classList.contains("hidden")) return null;
+  const width = img.naturalWidth;
+  const height = img.naturalHeight;
+  if (!width || !height) return null;
+  return width === height;
+}
+
 /**
- * Rebuild the preset preview grid from the given list.
- * @param {Array<{ preset_name: string, pre_edit_image: string, post_edit_image: string }>} presets
+ * @param {Array<{ preset_name: string, ar: string, pre_edit_image: string, post_edit_image: string }>} presets
  * @param {{ emptyMessage?: string }} [options]
  */
 function renderPresetGrid(presets, options = {}) {
@@ -372,6 +405,7 @@ async function loadPresets() {
       }
       allGalleryPresets.push({
         preset_name: preset.preset_name,
+        ar: normalizeAr(preset.ar),
         pre_edit_image: preset.pre_edit_image,
         post_edit_image: preset.post_edit_image,
       });
@@ -385,7 +419,7 @@ async function loadPresets() {
       );
     }
 
-    renderPresetGrid(allGalleryPresets);
+    renderVisibleGallery();
   } catch (err) {
     els.presetLoading?.remove();
     allGalleryPresets = [];
@@ -400,13 +434,47 @@ async function loadPresets() {
  * @param {string[]} matchNames
  */
 function applySearchFilter(matchNames) {
-  const allowed = new Set(matchNames.filter((n) => isValidPresetName(n)));
-  const filtered = allGalleryPresets.filter((p) => allowed.has(p.preset_name));
-  renderPresetGrid(filtered, { emptyMessage: "No presets match that search." });
+  searchMatchNames = matchNames.filter((n) => isValidPresetName(n));
+  renderVisibleGallery();
 }
 
 function clearSearchFilter() {
-  renderPresetGrid(allGalleryPresets);
+  searchMatchNames = null;
+  renderVisibleGallery();
+}
+
+function galleryAfterArFilter(list) {
+  if (inputImageIsSquare) return list;
+  return list.filter((p) => p.ar !== "square");
+}
+
+function renderVisibleGallery() {
+  const searching = searchMatchNames != null;
+  const allowed = searching ? new Set(searchMatchNames) : null;
+  const matched = allowed
+    ? allGalleryPresets.filter((p) => allowed.has(p.preset_name))
+    : allGalleryPresets;
+  const visible = galleryAfterArFilter(matched);
+
+  let emptyMessage = "No presets to show.";
+  if (searching) emptyMessage = "No presets match that search.";
+  else if (!inputImageIsSquare) emptyMessage = "No non-square presets to show.";
+
+  renderPresetGrid(visible, { emptyMessage });
+
+  if (
+    selectedPresetName &&
+    !visible.some((p) => p.preset_name === selectedPresetName)
+  ) {
+    setSelectedPreset(null);
+  }
+}
+
+function readInputSquareSwitch() {
+  const checked = els.squareFilter?.querySelector(
+    'input[name="input-square"]:checked',
+  );
+  inputImageIsSquare = checked?.value !== "no";
 }
 
 async function runPresetSearch(query) {
@@ -457,6 +525,13 @@ if (els.presetSearch) {
 if (els.presetReset) {
   els.presetReset.addEventListener("click", () => {
     setSelectedPreset(null);
+  });
+}
+
+if (els.squareFilter) {
+  els.squareFilter.addEventListener("change", () => {
+    readInputSquareSwitch();
+    renderVisibleGallery();
   });
 }
 

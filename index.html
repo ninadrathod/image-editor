@@ -81,6 +81,31 @@
                   Presets
                 </h2>
               </div>
+              <fieldset class="square-filter shrink-0" id="square-filter">
+                <legend class="sr-only">Is the input image square?</legend>
+                <span class="square-filter__label" aria-hidden="true">Input square?</span>
+                <div class="square-filter__switch" role="radiogroup" aria-label="Is the input image square?">
+                  <label class="square-filter__opt">
+                    <input
+                      type="radio"
+                      name="input-square"
+                      id="input-square-yes"
+                      value="yes"
+                      checked
+                    />
+                    <span>Yes</span>
+                  </label>
+                  <label class="square-filter__opt">
+                    <input
+                      type="radio"
+                      name="input-square"
+                      id="input-square-no"
+                      value="no"
+                    />
+                    <span>No</span>
+                  </label>
+                </div>
+              </fieldset>
 
               <label class="sr-only" for="preset-search">Search presets by name or keyword</label>
               <div class="preset-search-row preset-cols shrink-0">

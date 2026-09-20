@@ -2,6 +2,7 @@
   "name": "bw_bg_glowing_subject",
   "label": "B&W background with glowing subject",
   "description": "Extract subject, make the background grayscale, draw a glowing line border around the subject (color input), then place it on top.",
+  "ar": "non-square",
   "steps": [
     {
       "filter": "extract_subject",

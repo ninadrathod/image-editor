@@ -17,7 +17,7 @@ Detailed architecture for the preset-based local image editor.
 ┌──────────────────────────────────────────────────────────────┐
 │  Browser                                                     │
 │  index.html + script.js                                      │
-│    ├─ left: search + preset gallery                          │
+│    ├─ left: search + square switch + preset gallery          │
 │    │         (GET /api/presets/search filters previews)      │
 │    ├─ right: upload + edited result                          │
 │    ├─ js/image.js   → validate MIME / extension, object URLs │
@@ -41,7 +41,7 @@ Detailed architecture for the preset-based local image editor.
 ### Entry points
 
 - `index.html` — full-width two-column UI (Tailwind via CDN, Pop Poster theme in `css/styles.css` — Lilita One brand / Fredoka+Nunito UI, coral CTA, lemon header):
-  - **Left (~65%):** search input + preset grid (post-edit preview + name; hover/focus reveals pre-edit original); search reloads the grid from DB name/keyword matches.
+  - **Left (~65%):** search input, **Input square?** yes/no switch, and preset grid (post-edit preview + name; hover/focus reveals pre-edit original); search reloads the grid from DB name/keyword matches; **No** hides `ar=square` presets.
   - **Right (~35%):** file upload / original preview, then **Generate edit** / **Download**, then edited result.
 - `script.js` — wires gallery load, debounced search (filters gallery), selection, file pick/drag-drop, generate button.
 - `js/image.js` — `isImageFile`, object URL create/revoke.
@@ -49,14 +49,15 @@ Detailed architecture for the preset-based local image editor.
 
 ### UX flow
 
-1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails with pre-edit originals stacked underneath (entries must use a valid `preset_name` and relative paths under `previews/pre-edit/` and `previews/post-edit/`). Hover or keyboard focus reveals the original.
-2. User clicks a preset card to select it, **or** types in the left-column search box (debounced) to query DB `preset_name` + keywords via `GET /api/presets/search?q=…` — the gallery reloads to matching presets only (cleared query restores the full gallery).
-3. User selects or drops a file; client rejects non-images and shows an inline error.
-4. Original preview uses a local object URL.
-5. When **both** preset and file are set, **Generate edit** enables.
-6. On generate, the file + preset name are posted to the API; a loading state covers the result panel. Changing preset/file while a request is in flight discards the stale response.
-7. Response blob is shown via another object URL; download link reuses that URL.
-8. Refresh clears all in-memory state (no persistence of upload or result).
+1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails with pre-edit originals stacked underneath (entries must use a valid `preset_name`, `ar` of `square` or `non-square`, and relative paths under `previews/pre-edit/` and `previews/post-edit/`). Hover or keyboard focus reveals the original.
+2. User can set **Input square?** to **Yes** (show all presets) or **No** (show only `ar=non-square` presets).
+3. User clicks a preset card to select it, **or** types in the left-column search box (debounced) to query DB `preset_name` + keywords via `GET /api/presets/search?q=…` — the gallery reloads to matching presets only (cleared query restores the AR-filtered gallery).
+4. User selects or drops a file; client rejects non-images and shows an inline error.
+5. Original preview uses a local object URL.
+6. When **both** preset and file are set, **Generate edit** enables.
+7. On generate, the file + preset name are posted to the API; a loading state covers the result panel. Changing preset/file while a request is in flight discards the stale response. A `ar=square` preset on a non-square image is rejected (client + HTTP **400**).
+8. Response blob is shown via another object URL; download link reuses that URL.
+9. Refresh clears all in-memory state (no persistence of upload or result).
 
 ### Config
 
@@ -66,7 +67,7 @@ Detailed architecture for the preset-based local image editor.
 
 - `previews/pre-edit/` — open-licensed source photo per shipped DB preset (see `previews/CREDITS.md`).
 - `previews/post-edit/` — same photo after that preset is applied.
-- `previews/presets.json` — array of `{ preset_name, pre_edit_image, post_edit_image }` (repo-relative paths). Consumed by the index gallery.
+- `previews/presets.json` — array of `{ preset_name, ar, pre_edit_image, post_edit_image }` (repo-relative paths). Consumed by the index gallery. `ar` is `square` or `non-square`.
 
 ### Marketing page
 
@@ -126,11 +127,11 @@ test-suite/              # pytest unit tests for services only (not routes/HTTP)
 | Method | Path | Request | Response |
 |--------|------|---------|----------|
 | GET | `/health` | — | `{ "status": "ok" }` |
-| GET | `/api/presets/search` | query `q` (name/keyword substring, max 64) | JSON `[{ "preset_name", "keywords" }, …]` |
+| GET | `/api/presets/search` | query `q` (name/keyword substring, max 64) | JSON `[{ "preset_name", "keywords", "ar" }, …]` |
 | POST | `/api/blur` | `multipart/form-data` field `file` | `image/png` bytes |
 | POST | `/api/apply-preset` | `multipart/form-data` fields `preset_name`, `file` | `image/png` bytes |
 
-Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, empty file, unknown preset, decode failure). Oversized uploads/images return **413**. Apply-preset returns **503** when the concurrency gate is full.
+Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, empty file, unknown preset, decode failure, square-only preset on a non-square image). Oversized uploads/images return **413**. Apply-preset returns **503** when the concurrency gate is full.
 
 Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`), max side **8000** px, max **25M** pixels. Preset JSON paths from the DB must resolve under `backend/presets/` (`PresetPathUnsafeError` otherwise). Apply-preset runs off the event loop via `asyncio.to_thread` and allows only **1** concurrent job (`MAX_CONCURRENT_PRESET_JOBS`) so rembg cannot pile up.
 
@@ -152,7 +153,7 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 
 - Presets live in `backend/presets/*.json` as ordered `steps` with named layers (`image`, `subject`, `background`, …).
 - Runner: `backend/helpers/apply_preset.py` (uses `filters.py`).
-- HTTP: `POST /api/apply-preset` looks up `preset_name` in `presets.db`, loads that JSON path, runs the same runner, returns PNG (`app/services/preset.py` + `app/routes/preset.py`).
+- HTTP: `POST /api/apply-preset` looks up `preset_name` in `presets.db`, loads that JSON path, runs the same runner, returns PNG (`app/services/preset.py` + `app/routes/preset.py`). Presets with `"ar": "square"` reject non-square input images (`PresetAspectRatioError` → HTTP **400**).
 - Built-in filters: `extract_subject`, `brightness`, `color`, `contrast`, `overlay`, `grayscale`, `glow_border`, `glow_line_border`, `composite`.
 - `glow_line_border` draws a colored outline ring only (does not fill/glow the subject body). Pass `"color": [R,G,B]` (or `"rgb"`).
 - Shipped presets:
@@ -164,7 +165,7 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 ### Preset metadata database
 
 - Location: `backend/database/` (SQLite file `presets.db`, same pattern as a lightweight local store).
-- Table `presets`: `preset_id` (PK auto), `preset_name`, `preset_path`, `keywords` (JSON list), `created_date` (auto `datetime('now')`).
+- Table `presets`: `preset_id` (PK auto), `preset_name`, `preset_path`, `keywords` (JSON list), `ar` (`square` or `non-square`, default `non-square`), `created_date` (auto `datetime('now')`). Existing DBs gain `ar` via `migrate_schema()`.
 - Service functions: `backend/database/db_ops.py` (`add_preset`, `list_presets`, `search_presets_by_keyword`, `get_preset_by_id`, `update_preset`, `delete_preset`, `seed_default_presets`).
 - Keyword search API: `GET /api/presets/search?q=…` → case-insensitive substring match against each preset’s `preset_name` and keywords (`services/preset_search.py` + `routes/search.py`).
 - `./scripts/setup.sh` runs `init_db()` and seeds `bw_bg_glowing_subject`.

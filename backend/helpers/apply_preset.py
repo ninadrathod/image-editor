@@ -25,6 +25,38 @@ HELPERS_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = HELPERS_DIR.parent
 DEFAULT_PRESETS_DIR = BACKEND_DIR / "presets"
 
+AR_SQUARE = "square"
+AR_NON_SQUARE = "non-square"
+VALID_AR = frozenset({AR_SQUARE, AR_NON_SQUARE})
+
+
+class PresetAspectRatioError(ValueError):
+    """Raised when a square-only preset is applied to a non-square image."""
+
+
+def normalize_ar(value: Any | None) -> str:
+    """Return `square` or `non-square`. Missing/blank `ar` defaults to non-square."""
+    if value is None:
+        return AR_NON_SQUARE
+    text = str(value).strip().lower()
+    if not text:
+        return AR_NON_SQUARE
+    if text not in VALID_AR:
+        raise ValueError("ar must be 'square' or 'non-square'")
+    return text
+
+
+def is_square_image(image: Image.Image) -> bool:
+    width, height = image.size
+    return width > 0 and width == height
+
+
+def assert_preset_fits_image(image: Image.Image, ar: Any | None) -> None:
+    """Square-only presets (`ar=square`) require width == height."""
+    if normalize_ar(ar) == AR_SQUARE and not is_square_image(image):
+        raise PresetAspectRatioError("This preset only applies to square images.")
+
+
 # Filters that only transform a single layer in-place / to `as`
 _SIMPLE_FILTERS = {
     "brightness": F.brightness,
@@ -126,6 +158,7 @@ def apply_preset(
 ) -> Image.Image:
     path = resolve_preset_path(preset, presets_dir=presets_dir)
     data = load_preset(path)
+    assert_preset_fits_image(image, data.get("ar"))
     return apply_steps(image, data["steps"])
 
 
