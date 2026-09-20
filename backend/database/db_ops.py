@@ -1,7 +1,8 @@
 """
-CRUD helpers for the presets table in presets.db.
+CRUD helpers for the presets and popular tables in presets.db.
 
 Keywords are stored as a JSON array string in SQLite and returned as list[str].
+`popular` tracks download/use counts per preset_id (FK to presets).
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ except ImportError:  # running as a script inside backend/database/
     from init_db import DB_PATH, init_db, migrate_schema
 
 TABLE_NAME = "presets"
+POPULAR_TABLE = "popular"
 DEFAULT_AR = "non-square"
 VALID_AR = frozenset({"square", "non-square"})
 DEFAULT_TEXT_INPUT = "no"
@@ -30,7 +32,10 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
         init_db(db_path)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     migrate_schema(conn)
+    # executescript() commits; re-assert FKs for this connection.
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.commit()
     return conn
 
@@ -189,8 +194,13 @@ def add_preset(
                 limit_value,
             ),
         )
-        conn.commit()
         preset_id = int(cur.lastrowid)
+        conn.execute(
+            f"INSERT OR IGNORE INTO {POPULAR_TABLE} (preset_id, used_count) "
+            "VALUES (?, 0)",
+            (preset_id,),
+        )
+        conn.commit()
 
     row = get_preset_by_id(preset_id, db_path=db_path)
     if row is None:
@@ -327,6 +337,91 @@ def update_preset(
         if cur.rowcount == 0:
             return None
     return get_preset_by_id(preset_id, db_path=db_path)
+
+
+def list_popular(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
+    """Return popular rows ordered by used_count descending (then preset_id)."""
+    with get_connection(db_path) as conn:
+        rows = conn.execute(
+            f"""
+            SELECT p.preset_id, pr.preset_name, p.used_count
+            FROM {POPULAR_TABLE} AS p
+            INNER JOIN {TABLE_NAME} AS pr ON pr.preset_id = p.preset_id
+            ORDER BY p.used_count DESC, p.preset_id ASC
+            """
+        ).fetchall()
+    return [
+        {
+            "preset_id": int(row["preset_id"]),
+            "preset_name": str(row["preset_name"]),
+            "used_count": int(row["used_count"]),
+        }
+        for row in rows
+    ]
+
+
+def _bump_used_count(
+    conn: sqlite3.Connection,
+    preset_id: int,
+) -> dict[str, Any] | None:
+    """Increment used_count for an existing preset. Caller owns the connection."""
+    exists = conn.execute(
+        f"SELECT preset_id FROM {TABLE_NAME} WHERE preset_id = ?",
+        (preset_id,),
+    ).fetchone()
+    if exists is None:
+        return None
+    conn.execute(
+        f"""
+        INSERT INTO {POPULAR_TABLE} (preset_id, used_count) VALUES (?, 1)
+        ON CONFLICT(preset_id) DO UPDATE SET
+            used_count = {POPULAR_TABLE}.used_count + 1
+        """,
+        (preset_id,),
+    )
+    row = conn.execute(
+        f"SELECT preset_id, used_count FROM {POPULAR_TABLE} WHERE preset_id = ?",
+        (preset_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "preset_id": int(row["preset_id"]),
+        "used_count": int(row["used_count"]),
+    }
+
+
+def increment_used_count(
+    preset_id: int,
+    *,
+    db_path: Path = DB_PATH,
+) -> dict[str, Any] | None:
+    """Add 1 to used_count for `preset_id`. Returns the row, or None if missing."""
+    with get_connection(db_path) as conn:
+        row = _bump_used_count(conn, preset_id)
+        conn.commit()
+    return row
+
+
+def increment_used_count_by_name(
+    preset_name: str,
+    *,
+    db_path: Path = DB_PATH,
+) -> dict[str, Any] | None:
+    """Increment used_count for the preset with this name. None if unknown."""
+    name = (preset_name or "").strip()
+    if not name:
+        return None
+    with get_connection(db_path) as conn:
+        found = conn.execute(
+            f"SELECT preset_id FROM {TABLE_NAME} WHERE preset_name = ?",
+            (name,),
+        ).fetchone()
+        if found is None:
+            return None
+        row = _bump_used_count(conn, int(found["preset_id"]))
+        conn.commit()
+    return row
 
 
 def delete_preset(preset_id: int, *, db_path: Path = DB_PATH) -> bool:

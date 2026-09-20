@@ -164,15 +164,25 @@ Table `presets` in `backend/database/presets.db`:
 | `text_character_limit` | Max length for user text (1–200 when `text_input` is `yes`; `0` otherwise) |
 | `created_date` | Auto timestamp |
 
+Table `popular` (one row per preset; ordered by `used_count` descending when listed):
+
+| Column | Meaning |
+|--------|---------|
+| `preset_id` | Primary key and foreign key to `presets.preset_id` (`ON DELETE CASCADE`) |
+| `used_count` | Download count (starts at `0`; incremented by `POST /api/presets/use`) |
+
+`add_preset` inserts a `popular` row with `used_count = 0`. Existing databases gain the table via `migrate_schema()`. List with `list_popular()` / `GET /api/presets/popular` (`preset_id`, `preset_name`, `used_count`, highest count first). Download increments `used_count` immediately. The studio **Popular** control turns that sort on; the refresh button beside search reloads the gallery in that order.
+
 ```bash
 source backend/.venv/bin/activate
-python -c "
+python -c '
 import sys
-sys.path.insert(0, 'backend')
-from database.db_ops import add_preset, list_presets, search_presets_by_keyword
+sys.path.insert(0, "backend")
+from database.db_ops import add_preset, list_presets, list_popular, search_presets_by_keyword
 print(list_presets())
 print(search_presets_by_keyword("glow"))
-"
+print(list_popular())
+'
 ```
 
 ## How to create a new preset (human checklist)
@@ -188,7 +198,7 @@ print(search_presets_by_keyword("glow"))
 9. Agent then ships code:
    - adds helpers/filters only if needed (register in `FILTERS`; no API if/else)
    - writes `backend/presets/<name>.json` (include `"ar"` and `text_input` / `default_text` / `text_character_limit`)
-   - inserts a row with `add_preset(..., ar=..., text_input=..., default_text=..., text_character_limit=...)`
+   - inserts a row with `add_preset(..., ar=..., text_input=..., default_text=..., text_character_limit=...)` (also creates a `popular` row at `used_count` 0)
    - updates this file + CONTEXT/ARCHITECTURE (+ tests if needed)
 10. Gallery previews (gated — see create-preset skill step 8):
    - search open-licensed candidates that suit the preset

@@ -16,6 +16,9 @@ from database.db_ops import (  # noqa: E402
     delete_preset,
     get_preset_by_id,
     get_preset_by_name,
+    increment_used_count,
+    increment_used_count_by_name,
+    list_popular,
     list_presets,
     search_presets_by_keyword,
     seed_default_presets,
@@ -61,8 +64,12 @@ def test_init_and_crud(tmp_path: Path) -> None:
     assert square["ar"] == "square"
 
     assert list_presets(db_path=db)[0]["preset_name"] == "demo"
+    assert list_popular(db_path=db) == [
+        {"preset_id": 1, "preset_name": "demo", "used_count": 0}
+    ]
     assert delete_preset(1, db_path=db) is True
     assert get_preset_by_id(1, db_path=db) is None
+    assert list_popular(db_path=db) == []
 
 
 def test_seed_default_presets_is_idempotent(tmp_path: Path) -> None:
@@ -90,6 +97,9 @@ def test_seed_default_presets_is_idempotent(tmp_path: Path) -> None:
     assert by_name["warm_faded_print"]["text_character_limit"] == 0
     assert second == []
     assert len(list_presets(db_path=db)) == 3
+    popular = list_popular(db_path=db)
+    assert len(popular) == 3
+    assert all(row["used_count"] == 0 for row in popular)
 
 
 def test_seed_default_presets_syncs_text_fields(tmp_path: Path) -> None:
@@ -204,6 +214,9 @@ def test_migrate_adds_ar_column_to_existing_db(tmp_path: Path) -> None:
     assert row["text_input"] == "no"
     assert row["default_text"] == ""
     assert row["text_character_limit"] == 0
+    assert list_popular(db_path=db) == [
+        {"preset_id": row["preset_id"], "preset_name": "legacy", "used_count": 0}
+    ]
 
 
 def test_add_preset_stores_text_fields_and_rejects_invalid(tmp_path: Path) -> None:
@@ -247,3 +260,55 @@ def test_add_preset_stores_text_fields_and_rejects_invalid(tmp_path: Path) -> No
         assert "text_character_limit" in str(exc)
     else:
         raise AssertionError("expected ValueError for missing character limit")
+
+
+def test_popular_increments_and_sorts_descending(tmp_path: Path) -> None:
+    db = tmp_path / "presets.db"
+    init_db(db)
+    a = add_preset("alpha", "backend/presets/a.json", db_path=db)
+    b = add_preset("beta", "backend/presets/b.json", db_path=db)
+    c = add_preset("gamma", "backend/presets/c.json", db_path=db)
+
+    assert increment_used_count(999, db_path=db) is None
+    assert increment_used_count_by_name("missing", db_path=db) is None
+    assert increment_used_count_by_name("  ", db_path=db) is None
+
+    first = increment_used_count_by_name("beta", db_path=db)
+    second = increment_used_count(int(b["preset_id"]), db_path=db)
+    third = increment_used_count_by_name("alpha", db_path=db)
+
+    assert first == {"preset_id": b["preset_id"], "used_count": 1}
+    assert second == {"preset_id": b["preset_id"], "used_count": 2}
+    assert third == {"preset_id": a["preset_id"], "used_count": 1}
+
+    ranked = list_popular(db_path=db)
+    assert [row["preset_name"] for row in ranked] == ["beta", "alpha", "gamma"]
+    assert [row["preset_id"] for row in ranked] == [
+        b["preset_id"],
+        a["preset_id"],
+        c["preset_id"],
+    ]
+    assert [row["used_count"] for row in ranked] == [2, 1, 0]
+
+
+def test_list_popular_skips_orphan_rows(tmp_path: Path) -> None:
+    db = tmp_path / "presets.db"
+    init_db(db)
+    row = add_preset("kept", "backend/presets/kept.json", db_path=db)
+
+    with sqlite3.connect(db) as conn:
+        conn.execute("PRAGMA foreign_keys = OFF")
+        conn.execute(
+            "INSERT INTO popular (preset_id, used_count) VALUES (?, 9)",
+            (row["preset_id"] + 99,),
+        )
+        conn.commit()
+
+    ranked = list_popular(db_path=db)
+    assert ranked == [
+        {
+            "preset_id": row["preset_id"],
+            "preset_name": "kept",
+            "used_count": 0,
+        }
+    ]

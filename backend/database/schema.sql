@@ -11,3 +11,11 @@ CREATE TABLE IF NOT EXISTS presets (
 );
 
 CREATE INDEX IF NOT EXISTS idx_presets_name ON presets (preset_name);
+
+CREATE TABLE IF NOT EXISTS popular (
+    preset_id INTEGER PRIMARY KEY,
+    used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0),
+    FOREIGN KEY (preset_id) REFERENCES presets(preset_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_popular_used_count ON popular (used_count DESC);
