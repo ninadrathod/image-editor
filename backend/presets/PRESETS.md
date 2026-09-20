@@ -16,7 +16,7 @@ For the agent workflow (POC → name → keywords → ar → ship), use the proj
 | `backend/helpers/download_model.py` | Warm-cache `u2net` during setup |
 | `backend/database/` | SQLite metadata (`presets.db`, `db_ops.py`) |
 | `previews/pre-edit/` + `previews/post-edit/` + `previews/presets.json` | Before/after gallery assets per DB preset + name→path map (sources in `previews/CREDITS.md`) |
-| `POST /api/apply-preset` | HTTP: DB `preset_name` + image upload → PNG |
+| `POST /api/apply-preset` | HTTP: DB `preset_name` + image upload + optional `text` → PNG |
 
 ## Run a preset
 
@@ -36,6 +36,8 @@ curl -s -X POST "http://localhost:8000/api/apply-preset" \
   -o out.png
 ```
 
+For a preset with `text_input: yes`, also send `-F "text=Your caption"`. If `text` is omitted, `default_text` is used. The runner does not branch on filter type: each JSON step names a registered helper and its parameters.
+
 Only one apply-preset job runs at a time; concurrent extras get HTTP **503**.
 ## Shipped presets
 
@@ -44,6 +46,15 @@ Only one apply-preset job runs at a time; concurrent extras get HTTP **503**.
 - **Idea:** Extract subject → grayscale background → glowing **line** border on subject → composite.
 - **File:** `backend/presets/bw_bg_glowing_subject.json`
 - **AR:** `non-square` (any aspect ratio)
+- **Text input:** `no`
+- **DB:** seeded via `seed_default_presets()` / setup
+
+### `polaroid_memory`
+
+- **Idea:** Soft warm film grade → date/time stamp on the photo (top-right) → white polaroid mat at **1.4×** (`layout: polaroid`) → flow-script caption in the bottom band (`$text`).
+- **File:** `backend/presets/polaroid_memory.json`
+- **AR:** `square` (square-only)
+- **Text input:** `yes` — default `instant memory`, limit **24**
 - **DB:** seeded via `seed_default_presets()` / setup
 
 ## Built-in filters
@@ -59,6 +70,8 @@ Only one apply-preset job runs at a time; concurrent extras get HTTP **503**.
 | `glow_border` | Soft halo under subject (fills expanded mask) | `on`, `rgb`/`color`, `width`, `blur` |
 | `glow_line_border` | Outline **ring** only (subject body unchanged) | `on`, `color`/`rgb`, `width`, `blur` |
 | `composite` | Paste overlay on base | `base`, `overlay`, `as` |
+| `place_on_canvas` | Put layer on a larger solid canvas | `on`, `scale` (e.g. `1.4`), `fill`/`color`, `layout` (`polaroid` or `center`), `as` |
+| `draw_text` | Paint a string onto a layer | `on`, `text` (`$text` / `$datetime` / `$date` / `$time`), `font_size`, `color`/`rgb`, `align` (`center`/`top`/`bottom`/`top_right`/…), `font_style` (`sans`/`flow`), `margin`, `x`, `y`, `stroke_width` |
 
 Layers are named images in memory. Typical keys: `image`, `subject`, `background`.
 
@@ -70,6 +83,9 @@ Layers are named images in memory. Typical keys: `image`, `subject`, `background
   "label": "Human label",
   "description": "What this look does.",
   "ar": "non-square",
+  "text_input": "no",
+  "default_text": "",
+  "text_character_limit": 0,
   "steps": [
     {
       "filter": "extract_subject",
@@ -95,12 +111,29 @@ Layers are named images in memory. Typical keys: `image`, `subject`, `background
 }
 ```
 
+Each step’s `"filter"` is the helper function name. Remaining keys are that function’s parameters (plus layer bindings `on` / `as` / `bg_as` / `base` / `overlay`). The runner looks the name up in `FILTERS` and calls the function — there is no per-filter if/else in the API or the step loop.
+
+When `"text_input": "yes"`, set `default_text` and `text_character_limit` (1–200). Any string param equal to `$text` (or containing `$text`) is replaced with the user’s text (or the default if they omit it). Example step:
+
+```json
+{
+  "filter": "draw_text",
+  "on": "image",
+  "text": "$text",
+  "font_size": 48,
+  "color": [255, 255, 255],
+  "align": "bottom",
+  "stroke_width": 2
+}
+```
+
 Rules of thumb:
 
 1. Always end with a `composite` (or other step) that writes `as: "image"`.
 2. Apply background edits with `"on": "background"`; subject edits with `"on": "subject"`.
 3. Prefer `glow_line_border` when you want an outline, not a filled glow.
 4. Set `"ar": "square"` when the recipe only works on square images; `"ar": "non-square"` (default) works on any aspect ratio. A square-only preset applied to a non-square image raises `PresetAspectRatioError`.
+5. Set `"text_input": "yes"` only when a step uses `$text`. Then `text_character_limit` must be 1–200. `"no"` (default) ignores submitted text.
 
 ## Database metadata
 
@@ -113,6 +146,9 @@ Table `presets` in `backend/database/presets.db`:
 | `preset_path` | Repo-relative path, e.g. `backend/presets/foo.json` |
 | `keywords` | JSON list of search tags (also searched with `preset_name` by `GET /api/presets/search?q=…`) |
 | `ar` | `square` (square-only) or `non-square` (any aspect ratio; default) |
+| `text_input` | `yes` if the preset needs a caption/string; `no` otherwise (default) |
+| `default_text` | Prefill for the UI / fallback when apply omits `text` (empty when `text_input` is `no`) |
+| `text_character_limit` | Max length for user text (1–200 when `text_input` is `yes`; `0` otherwise) |
 | `created_date` | Auto timestamp |
 
 ```bash
@@ -134,21 +170,22 @@ print(search_presets_by_keyword("glow"))
 4. Pick a final `snake_case` preset name.
 5. Finalize the keywords list.
 6. Finalize `ar`: `square` (square-only) or `non-square` (any aspect ratio).
-7. Agent then ships code:
-   - adds helpers/filters only if needed
-   - writes `backend/presets/<name>.json` (include `"ar": "square"` or `"non-square"`)
-   - inserts a row with `add_preset(..., ar=...)`
+7. Finalize text input: `text_input` `yes`/`no`; if yes, also `default_text` and `text_character_limit` (1–200).
+8. Agent then ships code:
+   - adds helpers/filters only if needed (register in `FILTERS`; no API if/else)
+   - writes `backend/presets/<name>.json` (include `"ar"` and `text_input` / `default_text` / `text_character_limit`)
+   - inserts a row with `add_preset(..., ar=..., text_input=..., default_text=..., text_character_limit=...)`
    - updates this file + CONTEXT/ARCHITECTURE (+ tests if needed)
-8. Gallery previews (gated — see create-preset skill step 7):
+9. Gallery previews (gated — see create-preset skill step 8):
    - search open-licensed candidates that suit the preset
    - crop square + downsample to **720×720**
-   - apply preset and let you pick the best preview
+   - apply preset (pass `--text` when `text_input=yes`) and let you pick the best preview
    - write `previews/pre-edit/<name>.*`, `previews/post-edit/<name>.png`, `previews/presets.json`, and `previews/CREDITS.md`
 
 ## Adding a new filter (when needed)
 
 1. Implement a function in `backend/helpers/filters.py`.
-2. Register it in `backend/helpers/apply_preset.py` → `_SIMPLE_FILTERS`.
-3. If it takes a tint, accept `color` and/or `rgb`, and extend the color-alias block in `apply_steps`.
+2. Register it in `backend/helpers/apply_preset.py` → `FILTERS` (wrap with `_run_simple` if it takes one layer image plus kwargs).
+3. If it takes a tint, accept `color` and/or `rgb` inside the filter (not in the runner).
 4. Add a focused unit test under `test-suite/` when behavior is non-trivial.
 5. Document it in the filters table above.

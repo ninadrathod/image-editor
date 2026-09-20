@@ -2,7 +2,19 @@
   {
     "preset_name": "bw_bg_glowing_subject",
     "ar": "non-square",
+    "text_input": "no",
+    "default_text": "",
+    "text_character_limit": 0,
     "pre_edit_image": "previews/pre-edit/bw_bg_glowing_subject.jpg",
     "post_edit_image": "previews/post-edit/bw_bg_glowing_subject.png"
+  },
+  {
+    "preset_name": "polaroid_memory",
+    "ar": "square",
+    "text_input": "yes",
+    "default_text": "instant memory",
+    "text_character_limit": 24,
+    "pre_edit_image": "previews/pre-edit/polaroid_memory.jpg",
+    "post_edit_image": "previews/post-edit/polaroid_memory.png"
   }
 ]

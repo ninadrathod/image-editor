@@ -19,6 +19,9 @@ except ImportError:  # running as a script inside backend/database/
 TABLE_NAME = "presets"
 DEFAULT_AR = "non-square"
 VALID_AR = frozenset({"square", "non-square"})
+DEFAULT_TEXT_INPUT = "no"
+VALID_TEXT_INPUT = frozenset({"yes", "no"})
+MAX_PRESET_TEXT_CHARS = 200
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
@@ -37,6 +40,51 @@ def _normalize_ar(value: str | None) -> str:
     if text not in VALID_AR:
         raise ValueError("ar must be 'square' or 'non-square'")
     return text
+
+
+def _normalize_text_input(value: str | None) -> str:
+    text = (DEFAULT_TEXT_INPUT if value is None else str(value)).strip().lower()
+    if text not in VALID_TEXT_INPUT:
+        raise ValueError("text_input must be 'yes' or 'no'")
+    return text
+
+
+def _normalize_text_character_limit(value: int | str | None) -> int:
+    if value is None or value == "":
+        return 0
+    try:
+        limit = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("text_character_limit must be an integer") from exc
+    if limit < 0:
+        raise ValueError("text_character_limit must be >= 0")
+    if limit > MAX_PRESET_TEXT_CHARS:
+        raise ValueError(
+            f"text_character_limit must be <= {MAX_PRESET_TEXT_CHARS}"
+        )
+    return limit
+
+
+def _normalize_default_text(value: str | None, limit: int) -> str:
+    text = "" if value is None else str(value)
+    cap = limit if limit > 0 else MAX_PRESET_TEXT_CHARS
+    if len(text) > cap:
+        raise ValueError("default_text exceeds text_character_limit")
+    return text
+
+
+def _normalize_text_fields(
+    text_input: str | None,
+    default_text: str | None,
+    text_character_limit: int | str | None,
+) -> tuple[str, str, int]:
+    wants = _normalize_text_input(text_input)
+    if wants == DEFAULT_TEXT_INPUT:
+        return DEFAULT_TEXT_INPUT, "", 0
+    limit = _normalize_text_character_limit(text_character_limit)
+    if limit < 1:
+        raise ValueError("text_character_limit must be >= 1 when text_input is yes")
+    return wants, _normalize_default_text(default_text, limit), limit
 
 
 def _keywords_to_json(keywords: list[str] | None) -> str:
@@ -67,12 +115,34 @@ def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
         ar = _normalize_ar(raw_ar)
     except ValueError:
         ar = DEFAULT_AR
+    raw_text_input = row["text_input"] if "text_input" in keys else None
+    try:
+        text_input = _normalize_text_input(raw_text_input)
+    except ValueError:
+        text_input = DEFAULT_TEXT_INPUT
+    raw_limit = row["text_character_limit"] if "text_character_limit" in keys else 0
+    try:
+        text_character_limit = _normalize_text_character_limit(raw_limit)
+    except ValueError:
+        text_character_limit = 0
+    if text_input == DEFAULT_TEXT_INPUT:
+        default_text = ""
+        text_character_limit = 0
+    else:
+        raw_default = row["default_text"] if "default_text" in keys else ""
+        try:
+            default_text = _normalize_default_text(raw_default, text_character_limit)
+        except ValueError:
+            default_text = str(raw_default or "")[:text_character_limit]
     return {
         "preset_id": row["preset_id"],
         "preset_name": row["preset_name"],
         "preset_path": row["preset_path"],
         "keywords": _keywords_from_json(row["keywords"]),
         "ar": ar,
+        "text_input": text_input,
+        "default_text": default_text,
+        "text_character_limit": text_character_limit,
         "created_date": row["created_date"],
     }
 
@@ -82,6 +152,9 @@ def add_preset(
     preset_path: str,
     keywords: list[str] | None = None,
     ar: str = DEFAULT_AR,
+    text_input: str = DEFAULT_TEXT_INPUT,
+    default_text: str = "",
+    text_character_limit: int = 0,
     *,
     db_path: Path = DB_PATH,
 ) -> dict[str, Any]:
@@ -93,14 +166,28 @@ def add_preset(
     if not path:
         raise ValueError("preset_path is required")
     ar_value = _normalize_ar(ar)
+    text_input_value, default_text_value, limit_value = _normalize_text_fields(
+        text_input, default_text, text_character_limit
+    )
 
     with get_connection(db_path) as conn:
         cur = conn.execute(
             f"""
-            INSERT INTO {TABLE_NAME} (preset_name, preset_path, keywords, ar)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO {TABLE_NAME} (
+                preset_name, preset_path, keywords, ar,
+                text_input, default_text, text_character_limit
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (name, path, _keywords_to_json(keywords), ar_value),
+            (
+                name,
+                path,
+                _keywords_to_json(keywords),
+                ar_value,
+                text_input_value,
+                default_text_value,
+                limit_value,
+            ),
         )
         conn.commit()
         preset_id = int(cur.lastrowid)
@@ -171,6 +258,9 @@ def update_preset(
     preset_path: str | None = None,
     keywords: list[str] | None = None,
     ar: str | None = None,
+    text_input: str | None = None,
+    default_text: str | None = None,
+    text_character_limit: int | None = None,
     db_path: Path = DB_PATH,
 ) -> dict[str, Any] | None:
     """Partial update. Returns the updated row, or None if missing."""
@@ -195,6 +285,34 @@ def update_preset(
     if ar is not None:
         fields.append("ar = ?")
         values.append(_normalize_ar(ar))
+
+    text_fields_touched = (
+        text_input is not None
+        or default_text is not None
+        or text_character_limit is not None
+    )
+    if text_fields_touched:
+        current = get_preset_by_id(preset_id, db_path=db_path)
+        if current is None:
+            return None
+        merged_input = current["text_input"] if text_input is None else text_input
+        merged_default = current["default_text"] if default_text is None else default_text
+        merged_limit = (
+            current["text_character_limit"]
+            if text_character_limit is None
+            else text_character_limit
+        )
+        input_value, default_value, limit_value = _normalize_text_fields(
+            merged_input, merged_default, merged_limit
+        )
+        fields.extend(
+            [
+                "text_input = ?",
+                "default_text = ?",
+                "text_character_limit = ?",
+            ]
+        )
+        values.extend([input_value, default_value, limit_value])
 
     if not fields:
         return get_preset_by_id(preset_id, db_path=db_path)
@@ -223,7 +341,7 @@ def delete_preset(preset_id: int, *, db_path: Path = DB_PATH) -> bool:
 
 
 def seed_default_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
-    """Insert known shipped presets if they are not already present."""
+    """Insert known shipped presets if missing; sync text/ar metadata when present."""
     defaults = [
         {
             "preset_name": "bw_bg_glowing_subject",
@@ -237,6 +355,32 @@ def seed_default_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
                 "border",
             ],
             "ar": "non-square",
+            "text_input": "no",
+            "default_text": "",
+            "text_character_limit": 0,
+        },
+        {
+            "preset_name": "polaroid_memory",
+            "preset_path": "backend/presets/polaroid_memory.json",
+            "keywords": [
+                "polaroid",
+                "instant",
+                "film",
+                "vintage",
+                "warm",
+                "white frame",
+                "caption",
+                "timestamp",
+                "square",
+                "memory",
+                "nostalgia",
+                "brush script",
+                "photo border",
+            ],
+            "ar": "square",
+            "text_input": "yes",
+            "default_text": "instant memory",
+            "text_character_limit": 24,
         },
     ]
     created: list[dict[str, Any]] = []
@@ -249,7 +393,35 @@ def seed_default_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
                     item["preset_path"],
                     item["keywords"],
                     item.get("ar", DEFAULT_AR),
+                    item.get("text_input", DEFAULT_TEXT_INPUT),
+                    item.get("default_text", ""),
+                    item.get("text_character_limit", 0),
                     db_path=db_path,
                 )
+            )
+            continue
+
+        desired_ar = item.get("ar", DEFAULT_AR)
+        desired_text_input = item.get("text_input", DEFAULT_TEXT_INPUT)
+        desired_default = item.get("default_text", "")
+        desired_limit = item.get("text_character_limit", 0)
+        needs_sync = (
+            existing.get("ar") != desired_ar
+            or existing.get("text_input") != desired_text_input
+            or existing.get("default_text") != desired_default
+            or existing.get("text_character_limit") != desired_limit
+            or existing.get("preset_path") != item["preset_path"]
+            or existing.get("keywords") != item["keywords"]
+        )
+        if needs_sync:
+            update_preset(
+                int(existing["preset_id"]),
+                preset_path=item["preset_path"],
+                keywords=item["keywords"],
+                ar=desired_ar,
+                text_input=desired_text_input,
+                default_text=desired_default,
+                text_character_limit=desired_limit,
+                db_path=db_path,
             )
     return created

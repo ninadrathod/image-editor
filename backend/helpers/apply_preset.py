@@ -7,6 +7,10 @@ Usage:
   python apply_preset.py INPUT.jpg --preset path/to/custom.json -o out.png
 
 Presets live in backend/presets/ by default.
+
+Each step names a registered filter and its parameters. The runner looks the
+function up by name — it does not branch on filter type. User text is bound
+into string params that equal (or contain) `$text`.
 """
 
 from __future__ import annotations
@@ -14,8 +18,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from PIL import Image
 
@@ -29,9 +34,31 @@ AR_SQUARE = "square"
 AR_NON_SQUARE = "non-square"
 VALID_AR = frozenset({AR_SQUARE, AR_NON_SQUARE})
 
+TEXT_INPUT_YES = "yes"
+TEXT_INPUT_NO = "no"
+VALID_TEXT_INPUT = frozenset({TEXT_INPUT_YES, TEXT_INPUT_NO})
+MAX_PRESET_TEXT_CHARS = 200
+TEXT_PLACEHOLDER = "$text"
+DATETIME_PLACEHOLDER = "$datetime"
+DATE_PLACEHOLDER = "$date"
+TIME_PLACEHOLDER = "$time"
+DATETIME_FORMAT = "%Y-%m-%d %H:%M"
+DATE_FORMAT = "%Y-%m-%d"
+TIME_FORMAT = "%H:%M"
+
+# Keys that bind named layers; not forwarded to the filter function.
+_LAYER_KEYS = frozenset({"on", "as", "bg_as", "base", "overlay"})
+
 
 class PresetAspectRatioError(ValueError):
     """Raised when a square-only preset is applied to a non-square image."""
+
+
+class PresetTextError(ValueError):
+    """Raised when user text is missing or exceeds the preset's character limit."""
+
+
+FilterHandler = Callable[..., None]
 
 
 def normalize_ar(value: Any | None) -> str:
@@ -46,6 +73,42 @@ def normalize_ar(value: Any | None) -> str:
     return text
 
 
+def normalize_text_input(value: Any | None) -> str:
+    """Return `yes` or `no`. Missing/blank `text_input` defaults to no."""
+    if value is None:
+        return TEXT_INPUT_NO
+    text = str(value).strip().lower()
+    if not text:
+        return TEXT_INPUT_NO
+    if text not in VALID_TEXT_INPUT:
+        raise ValueError("text_input must be 'yes' or 'no'")
+    return text
+
+
+def normalize_text_character_limit(value: Any | None) -> int:
+    if value is None or value == "":
+        return 0
+    try:
+        limit = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("text_character_limit must be an integer") from exc
+    if limit < 0:
+        raise ValueError("text_character_limit must be >= 0")
+    if limit > MAX_PRESET_TEXT_CHARS:
+        raise ValueError(
+            f"text_character_limit must be <= {MAX_PRESET_TEXT_CHARS}"
+        )
+    return limit
+
+
+def normalize_default_text(value: Any | None, limit: int = 0) -> str:
+    text = "" if value is None else str(value)
+    cap = limit if limit > 0 else MAX_PRESET_TEXT_CHARS
+    if len(text) > cap:
+        raise ValueError("default_text exceeds text_character_limit")
+    return text
+
+
 def is_square_image(image: Image.Image) -> bool:
     width, height = image.size
     return width > 0 and width == height
@@ -57,15 +120,140 @@ def assert_preset_fits_image(image: Image.Image, ar: Any | None) -> None:
         raise PresetAspectRatioError("This preset only applies to square images.")
 
 
-# Filters that only transform a single layer in-place / to `as`
-_SIMPLE_FILTERS = {
-    "brightness": F.brightness,
-    "color": F.color,
-    "contrast": F.contrast,
-    "overlay": F.overlay,
-    "grayscale": F.grayscale,
-    "glow_border": F.glow_border,
-    "glow_line_border": F.glow_line_border,
+def resolve_user_text(preset: dict[str, Any], text: str | None) -> str:
+    """
+    Resolve the string passed into `$text` placeholders.
+
+    Presets with `text_input: no` ignore submitted text.
+    When `text_input: yes`, omitted text uses `default_text`; a provided value
+    (including empty) is used as-is and must fit `text_character_limit`.
+    """
+    wants_text = normalize_text_input(preset.get("text_input")) == TEXT_INPUT_YES
+    if text is not None and len(text) > MAX_PRESET_TEXT_CHARS:
+        raise PresetTextError(
+            f"Text must be at most {MAX_PRESET_TEXT_CHARS} characters."
+        )
+    if not wants_text:
+        return ""
+
+    limit = normalize_text_character_limit(preset.get("text_character_limit"))
+    if limit < 1:
+        raise PresetTextError(
+            "text_character_limit must be >= 1 when text_input is yes"
+        )
+    default = normalize_default_text(preset.get("default_text"), limit)
+    value = default if text is None else str(text)
+    if len(value) > limit:
+        raise PresetTextError(f"Text must be at most {limit} characters.")
+    return value
+
+
+def bind_placeholders(
+    value: Any,
+    *,
+    text: str,
+    now: datetime | None = None,
+) -> Any:
+    """Replace `$text` / `$datetime` / `$date` / `$time` in strings (and nested structures)."""
+    if isinstance(value, str):
+        if value == TEXT_PLACEHOLDER:
+            return text
+        if value == DATETIME_PLACEHOLDER:
+            stamp = now or datetime.now()
+            return stamp.strftime(DATETIME_FORMAT)
+        if value == DATE_PLACEHOLDER:
+            stamp = now or datetime.now()
+            return stamp.strftime(DATE_FORMAT)
+        if value == TIME_PLACEHOLDER:
+            stamp = now or datetime.now()
+            return stamp.strftime(TIME_FORMAT)
+        out = value
+        if TEXT_PLACEHOLDER in out:
+            out = out.replace(TEXT_PLACEHOLDER, text)
+        if DATETIME_PLACEHOLDER in out or DATE_PLACEHOLDER in out or TIME_PLACEHOLDER in out:
+            stamp = now or datetime.now()
+            out = out.replace(DATETIME_PLACEHOLDER, stamp.strftime(DATETIME_FORMAT))
+            out = out.replace(DATE_PLACEHOLDER, stamp.strftime(DATE_FORMAT))
+            out = out.replace(TIME_PLACEHOLDER, stamp.strftime(TIME_FORMAT))
+        return out
+    if isinstance(value, list):
+        return [bind_placeholders(item, text=text, now=now) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: bind_placeholders(item, text=text, now=now)
+            for key, item in value.items()
+        }
+    return value
+
+
+def bind_step_params(
+    step: dict[str, Any],
+    text: str,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    return {
+        key: bind_placeholders(value, text=text, now=now)
+        for key, value in step.items()
+        if key != "filter"
+    }
+
+
+def _run_simple(fn: Callable[..., Image.Image]) -> FilterHandler:
+    def run(layers: dict[str, Image.Image], *, index: int = 0, **step: Any) -> None:
+        on_key = step.get("on", "image")
+        if on_key not in layers:
+            raise KeyError(f"Step {index}: unknown layer '{on_key}'")
+        dest = step.get("as", on_key)
+        call_params = {key: value for key, value in step.items() if key not in _LAYER_KEYS}
+        layers[dest] = fn(layers[on_key], **call_params)
+
+    return run
+
+
+def _run_extract_subject(
+    layers: dict[str, Image.Image],
+    *,
+    index: int = 0,
+    **step: Any,
+) -> None:
+    source_key = step.get("on", "image")
+    if source_key not in layers:
+        raise KeyError(f"Step {index}: unknown layer '{source_key}'")
+    subject, background = F.extract_subject_layers(layers[source_key])
+    layers[step.get("as", "subject")] = subject
+    layers[step.get("bg_as", "background")] = background
+
+
+def _run_composite(
+    layers: dict[str, Image.Image],
+    *,
+    index: int = 0,
+    **step: Any,
+) -> None:
+    base_key = step.get("base", "background")
+    overlay_key = step.get("overlay", "subject")
+    if base_key not in layers:
+        raise KeyError(f"Step {index}: unknown base layer '{base_key}'")
+    if overlay_key not in layers:
+        raise KeyError(f"Step {index}: unknown overlay layer '{overlay_key}'")
+    result = F.composite(layers[base_key], layers[overlay_key])
+    layers[step.get("as", "image")] = result
+
+
+# JSON `"filter"` name → function. Add new ops here; do not add if/else in the runner.
+FILTERS: dict[str, FilterHandler] = {
+    "extract_subject": _run_extract_subject,
+    "composite": _run_composite,
+    "brightness": _run_simple(F.brightness),
+    "color": _run_simple(F.color),
+    "contrast": _run_simple(F.contrast),
+    "overlay": _run_simple(F.overlay),
+    "grayscale": _run_simple(F.grayscale),
+    "glow_border": _run_simple(F.glow_border),
+    "glow_line_border": _run_simple(F.glow_line_border),
+    "draw_text": _run_simple(F.draw_text),
+    "place_on_canvas": _run_simple(F.place_on_canvas),
 }
 
 
@@ -92,58 +280,34 @@ def load_preset(preset_path: Path) -> dict[str, Any]:
     return data
 
 
-def _params(step: dict[str, Any]) -> dict[str, Any]:
-    skip = {"filter", "on", "as", "bg_as", "base", "overlay"}
-    return {k: v for k, v in step.items() if k not in skip}
-
-
-def apply_steps(image: Image.Image, steps: list[dict[str, Any]]) -> Image.Image:
+def apply_steps(
+    image: Image.Image,
+    steps: list[dict[str, Any]],
+    *,
+    text: str = "",
+    now: datetime | None = None,
+) -> Image.Image:
     """Run ordered preset steps over named layers. Returns the final `image` layer."""
     layers: dict[str, Image.Image] = {"image": image.convert("RGBA")}
+    stamp = now or datetime.now()
 
     for index, step in enumerate(steps):
         if not isinstance(step, dict) or "filter" not in step:
             raise ValueError(f"Step {index} must be an object with a 'filter' key")
 
         name = step["filter"]
-        params = _params(step)
+        handler = FILTERS.get(name)
+        if handler is None:
+            allowed = ", ".join(sorted(FILTERS))
+            raise ValueError(
+                f"Step {index}: unknown filter '{name}'. Allowed: {allowed}"
+            )
 
-        if name == "extract_subject":
-            source_key = step.get("on", "image")
-            if source_key not in layers:
-                raise KeyError(f"Step {index}: unknown layer '{source_key}'")
-            subject, background = F.extract_subject_layers(layers[source_key])
-            layers[step.get("as", "subject")] = subject
-            layers[step.get("bg_as", "background")] = background
-            continue
-
-        if name == "composite":
-            base_key = step.get("base", "background")
-            overlay_key = step.get("overlay", "subject")
-            if base_key not in layers:
-                raise KeyError(f"Step {index}: unknown base layer '{base_key}'")
-            if overlay_key not in layers:
-                raise KeyError(f"Step {index}: unknown overlay layer '{overlay_key}'")
-            result = F.composite(layers[base_key], layers[overlay_key])
-            layers[step.get("as", "image")] = result
-            continue
-
-        if name not in _SIMPLE_FILTERS:
-            allowed = ", ".join(sorted([*_SIMPLE_FILTERS, "extract_subject", "composite"]))
-            raise ValueError(f"Step {index}: unknown filter '{name}'. Allowed: {allowed}")
-
-        on_key = step.get("on", "image")
-        if on_key not in layers:
-            raise KeyError(f"Step {index}: unknown layer '{on_key}'")
-
-        # Normalize color aliases for filters that take an RGB tint
-        call_params = dict(params)
-        if name in {"overlay", "glow_border", "glow_line_border"}:
-            if "color" in call_params and "rgb" not in call_params:
-                call_params["rgb"] = call_params.pop("color")
-
-        result = _SIMPLE_FILTERS[name](layers[on_key], **call_params)
-        layers[step.get("as", on_key)] = result
+        params = bind_step_params(step, text, now=stamp)
+        try:
+            handler(layers, index=index, **params)
+        except TypeError as exc:
+            raise ValueError(f"Step {index}: {exc}") from exc
 
     if "image" not in layers:
         raise RuntimeError("Preset finished without an 'image' layer — add composite with as=image")
@@ -155,11 +319,13 @@ def apply_preset(
     preset: str | Path,
     *,
     presets_dir: Path = DEFAULT_PRESETS_DIR,
+    text: str | None = None,
 ) -> Image.Image:
     path = resolve_preset_path(preset, presets_dir=presets_dir)
     data = load_preset(path)
     assert_preset_fits_image(image, data.get("ar"))
-    return apply_steps(image, data["steps"])
+    resolved_text = resolve_user_text(data, text)
+    return apply_steps(image, data["steps"], text=resolved_text)
 
 
 def apply_preset_file(
@@ -168,6 +334,7 @@ def apply_preset_file(
     output_path: str | Path,
     *,
     presets_dir: Path = DEFAULT_PRESETS_DIR,
+    text: str | None = None,
 ) -> Path:
     src = Path(input_path)
     dst = Path(output_path)
@@ -176,7 +343,7 @@ def apply_preset_file(
 
     with Image.open(src) as image:
         image.load()
-        result = apply_preset(image, preset, presets_dir=presets_dir)
+        result = apply_preset(image, preset, presets_dir=presets_dir, text=text)
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     # Preserve alpha if present
@@ -209,6 +376,11 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_PRESETS_DIR,
         help="Directory of preset JSON files",
     )
+    parser.add_argument(
+        "--text",
+        default=None,
+        help="Text for presets with text_input=yes (otherwise default_text is used)",
+    )
     args = parser.parse_args(argv)
 
     preset_label = Path(args.preset).stem
@@ -220,6 +392,7 @@ def main(argv: list[str] | None = None) -> int:
             args.preset,
             output,
             presets_dir=args.presets_dir,
+            text=args.text,
         )
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)

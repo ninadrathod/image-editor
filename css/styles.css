@@ -201,6 +201,12 @@ html:has(.studio-page) {
   aspect-ratio: auto;
 }
 
+/* Keep upload usable when the optional preset text field is visible */
+.studio-page .studio-panel:has(#preset-text-wrap:not(.hidden)) .stage.stage--upload {
+  min-height: clamp(5.5rem, 18vh, 9rem);
+  flex: 1.15 1 0;
+}
+
 .studio-page .upload-icon-wrap {
   width: clamp(2rem, 5vh, 2.75rem);
   height: clamp(2rem, 5vh, 2.75rem);
@@ -251,6 +257,34 @@ html:has(.studio-page) {
 
   .studio-page .hero h1 {
     font-size: clamp(0.85rem, 3.2vh, 1.15rem) !important;
+  }
+
+  .studio-page .stage.stage--upload,
+  .studio-page .stage.stage--result,
+  .studio-page .studio-columns__right .stage.stage--upload,
+  .studio-page .studio-columns__right .stage.stage--result {
+    min-height: 5.5rem;
+  }
+
+  .studio-page .studio-panel:has(#preset-text-wrap:not(.hidden)) .stage.stage--upload {
+    min-height: 5.5rem;
+  }
+
+  .studio-page .preset-text-wrap {
+    gap: 0.12rem;
+  }
+
+  .studio-page .preset-text-label {
+    font-size: 0.58rem;
+  }
+
+  .studio-page .preset-text-input {
+    padding: 0.28rem 0.5rem;
+    font-size: 0.72rem;
+  }
+
+  .studio-page .preset-text-count {
+    font-size: 0.55rem;
   }
 }
 
@@ -788,6 +822,89 @@ html:has(.studio-page) {
 .drop-zone:hover {
   background: color-mix(in srgb, var(--sky) 14%, var(--chalk));
   box-shadow: 3px 3px 0 var(--sky);
+}
+
+.drop-zone--locked {
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
+.drop-zone--locked:hover,
+.drop-zone--locked.drop-zone--active {
+  background: var(--chalk);
+  box-shadow: none;
+}
+
+.drop-zone--locked:hover .upload-icon-wrap {
+  transform: none;
+}
+
+.drop-zone--locked.drop-zone--filled {
+  cursor: not-allowed;
+}
+
+.drop-zone--locked.drop-zone--filled:hover::after {
+  content: none;
+}
+
+.preset-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  flex-shrink: 0;
+}
+
+.preset-text-wrap.hidden {
+  display: none;
+}
+
+.preset-text-label {
+  font-size: clamp(0.65rem, 1.6vh, 0.75rem);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.preset-text-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.preset-text-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.42rem 0.65rem;
+  border: 2.5px solid var(--ink);
+  border-radius: 0.55rem;
+  background: var(--chalk);
+  color: var(--ink);
+  font: inherit;
+  font-size: clamp(0.75rem, 1.8vh, 0.88rem);
+  font-weight: 700;
+}
+
+.preset-text-input:focus {
+  outline: none;
+  box-shadow: 3px 3px 0 var(--sky);
+}
+
+.preset-text-count {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--mute);
+  white-space: nowrap;
+}
+
+@media (max-width: 379px) {
+  .preset-text-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.15rem;
+  }
+
+  .preset-text-count {
+    justify-self: end;
+  }
 }
 
 .drop-zone--active {

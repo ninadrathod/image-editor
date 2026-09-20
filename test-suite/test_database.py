@@ -39,6 +39,9 @@ def test_init_and_crud(tmp_path: Path) -> None:
     assert row["preset_path"] == "backend/presets/demo.json"
     assert row["keywords"] == ["glow", "subject"]
     assert row["ar"] == "non-square"
+    assert row["text_input"] == "no"
+    assert row["default_text"] == ""
+    assert row["text_character_limit"] == 0
     assert row["created_date"]
 
     by_id = get_preset_by_id(1, db_path=db)
@@ -67,11 +70,55 @@ def test_seed_default_presets_is_idempotent(tmp_path: Path) -> None:
     init_db(db)
     first = seed_default_presets(db_path=db)
     second = seed_default_presets(db_path=db)
-    assert len(first) == 1
-    assert first[0]["preset_name"] == "bw_bg_glowing_subject"
-    assert first[0]["ar"] == "non-square"
+    assert len(first) == 2
+    names = {row["preset_name"] for row in first}
+    assert names == {"bw_bg_glowing_subject", "polaroid_memory"}
+    by_name = {row["preset_name"]: row for row in first}
+    assert by_name["bw_bg_glowing_subject"]["ar"] == "non-square"
+    assert by_name["bw_bg_glowing_subject"]["text_input"] == "no"
+    assert by_name["polaroid_memory"]["ar"] == "square"
+    assert by_name["polaroid_memory"]["text_input"] == "yes"
+    assert by_name["polaroid_memory"]["default_text"] == "instant memory"
+    assert by_name["polaroid_memory"]["text_character_limit"] == 24
     assert second == []
-    assert len(list_presets(db_path=db)) == 1
+    assert len(list_presets(db_path=db)) == 2
+
+
+def test_seed_default_presets_syncs_text_fields(tmp_path: Path) -> None:
+    db = tmp_path / "presets.db"
+    init_db(db)
+    row = add_preset(
+        "bw_bg_glowing_subject",
+        "backend/presets/bw_bg_glowing_subject.json",
+        ["stale"],
+        ar="square",
+        text_input="yes",
+        default_text="stale",
+        text_character_limit=12,
+        db_path=db,
+    )
+    assert row["text_input"] == "yes"
+
+    created = seed_default_presets(db_path=db)
+    assert [row["preset_name"] for row in created] == ["polaroid_memory"]
+    synced = get_preset_by_name("bw_bg_glowing_subject", db_path=db)
+    assert synced is not None
+    assert synced["ar"] == "non-square"
+    assert synced["text_input"] == "no"
+    assert synced["default_text"] == ""
+    assert synced["text_character_limit"] == 0
+    assert synced["keywords"] == [
+        "grayscale",
+        "black and white",
+        "glow",
+        "outline",
+        "subject",
+        "border",
+    ]
+    polaroid = get_preset_by_name("polaroid_memory", db_path=db)
+    assert polaroid is not None
+    assert polaroid["text_input"] == "yes"
+    assert polaroid["default_text"] == "instant memory"
 
 
 def test_search_presets_by_keyword(tmp_path: Path) -> None:
@@ -143,3 +190,49 @@ def test_migrate_adds_ar_column_to_existing_db(tmp_path: Path) -> None:
     row = get_preset_by_name("legacy", db_path=db)
     assert row is not None
     assert row["ar"] == "non-square"
+    assert row["text_input"] == "no"
+    assert row["default_text"] == ""
+    assert row["text_character_limit"] == 0
+
+
+def test_add_preset_stores_text_fields_and_rejects_invalid(tmp_path: Path) -> None:
+    db = tmp_path / "presets.db"
+    init_db(db)
+
+    row = add_preset(
+        "caption_look",
+        "backend/presets/caption.json",
+        text_input="yes",
+        default_text="Hello",
+        text_character_limit=12,
+        db_path=db,
+    )
+    assert row["text_input"] == "yes"
+    assert row["default_text"] == "Hello"
+    assert row["text_character_limit"] == 12
+
+    try:
+        add_preset(
+            "bad_flag",
+            "backend/presets/bad_flag.json",
+            text_input="maybe",
+            db_path=db,
+        )
+    except ValueError as exc:
+        assert "text_input must be" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for invalid text_input")
+
+    try:
+        add_preset(
+            "bad_limit",
+            "backend/presets/bad_limit.json",
+            text_input="yes",
+            default_text="Hi",
+            text_character_limit=0,
+            db_path=db,
+        )
+    except ValueError as exc:
+        assert "text_character_limit" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for missing character limit")

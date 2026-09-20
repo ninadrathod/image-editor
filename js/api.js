@@ -19,7 +19,9 @@ export async function blurImage(baseUrl, file) {
       body: form,
     });
   } catch {
-    throw new Error("Could not reach the server. Start the backend and try again.");
+    throw new Error(
+      `Could not reach the API at ${baseUrl}. Is the backend running (./scripts/run.sh)?`,
+    );
   }
 
   if (!response.ok) {
@@ -40,7 +42,7 @@ export async function blurImage(baseUrl, file) {
  * GET presets whose name or keywords match `query` (case-insensitive substring).
  * @param {string} baseUrl - API origin, e.g. http://localhost:8000
  * @param {string} query - Search text
- * @returns {Promise<Array<{ preset_name: string, keywords: string[], ar?: string }>>}
+ * @returns {Promise<Array<{ preset_name: string, keywords: string[], ar?: string, text_input?: string, default_text?: string, text_character_limit?: number }>>}
  */
 export async function searchPresets(baseUrl, query) {
   const q = String(query || "").trim();
@@ -51,7 +53,9 @@ export async function searchPresets(baseUrl, query) {
   try {
     response = await fetch(url);
   } catch {
-    throw new Error("Could not reach the server. Start the backend and try again.");
+    throw new Error(
+      `Could not reach the API at ${baseUrl}. Is the backend running (./scripts/run.sh)?`,
+    );
   }
 
   if (!response.ok) {
@@ -70,15 +74,21 @@ export async function searchPresets(baseUrl, query) {
 }
 
 /**
- * POST preset name + image to /api/apply-preset and return the result as a Blob.
+ * POST preset name + image (+ optional text) to /api/apply-preset and return the result as a Blob.
  * @param {string} baseUrl - API origin, e.g. http://localhost:8000
  * @param {string} presetName - DB preset_name
  * @param {File} file - Image file selected by the user
+ * @param {string} [text] - User text for presets with text_input=yes
  * @returns {Promise<Blob>}
  */
-export async function applyPreset(baseUrl, presetName, file) {
+export async function applyPreset(baseUrl, presetName, file, text) {
   const form = new FormData();
   form.append("preset_name", presetName);
+  // Always send text for text-input presets (including "" for a blank caption).
+  if (typeof text === "string") {
+    form.append("text", text);
+  }
+  // File last — more reliable for some multipart parsers.
   form.append("file", file);
 
   let response;
@@ -88,7 +98,9 @@ export async function applyPreset(baseUrl, presetName, file) {
       body: form,
     });
   } catch {
-    throw new Error("Could not reach the server. Start the backend and try again.");
+    throw new Error(
+      `Could not reach the API at ${baseUrl}. Is the backend running (./scripts/run.sh)?`,
+    );
   }
 
   if (!response.ok) {

@@ -19,6 +19,7 @@ from app.services.preset import (
     PresetFileMissingError,
     PresetNotFoundError,
     PresetPathUnsafeError,
+    PresetTextError,
     run_preset_job,
 )
 
@@ -29,9 +30,11 @@ router = APIRouter(tags=["preset"])
 async def apply_preset_endpoint(
     preset_name: str = Form(...),
     file: UploadFile = File(...),
+    text: str | None = Form(None, max_length=200),
 ):
     """
-    Accept a preset name (presets.preset_name) and image upload; return PNG bytes.
+    Accept a preset name (presets.preset_name), image upload, and optional
+    `text` (used only when the preset JSON has text_input=yes); return PNG bytes.
     """
     name = (preset_name or "").strip()
     if not name:
@@ -53,7 +56,7 @@ async def apply_preset_endpoint(
 
     try:
         image = load_image(raw)
-        result = await run_preset_job(image, name)
+        result = await run_preset_job(image, name, text=text)
         png_bytes = save_png_bytes(result)
     except PresetBusyError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -64,6 +67,8 @@ async def apply_preset_endpoint(
     except PresetPathUnsafeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except PresetAspectRatioError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PresetTextError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ImageTooLargeError as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from exc

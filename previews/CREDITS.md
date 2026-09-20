@@ -10,3 +10,10 @@ Attribution is required where the license says so.
 - **Photographer:** [Radomianin](https://commons.wikimedia.org/wiki/User:Radomianin)
 - **License:** [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 - **Files:** `pre-edit/bw_bg_glowing_subject.jpg` → `post-edit/bw_bg_glowing_subject.png` (preset `bw_bg_glowing_subject`)
+
+## `polaroid_memory`
+
+- **Photograph:** [Sunset beach couple (Unsplash)](https://commons.wikimedia.org/wiki/File:Sunset_beach_couple_(Unsplash).jpg)
+- **Photographer:** [Caleb Ekeroth](https://unsplash.com/@calebekeroth) (via Wikimedia Commons Unsplash CC0 archive)
+- **License:** [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+- **Files:** `pre-edit/polaroid_memory.jpg` → `post-edit/polaroid_memory.png` (preset `polaroid_memory`)

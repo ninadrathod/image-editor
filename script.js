@@ -5,7 +5,19 @@
 import { applyPreset, searchPresets } from "./js/api.js";
 import { isImageFile, createObjectUrl, revokeObjectUrl } from "./js/image.js";
 
-const API_BASE = "http://localhost:8000";
+/**
+ * Prefer IPv4 loopback when the page is on `localhost`.
+ * macOS often resolves `localhost` → `::1` first, while uvicorn
+ * (`--host 0.0.0.0`) only accepts IPv4 — fetch then fails with a network error.
+ */
+function apiBaseUrl() {
+  const { protocol, hostname } = window.location;
+  const apiHost =
+    !hostname || hostname === "localhost" ? "127.0.0.1" : hostname;
+  return `${protocol}//${apiHost}:8000`;
+}
+
+const API_BASE = apiBaseUrl();
 const PRESETS_MANIFEST = "previews/presets.json";
 const SEARCH_DEBOUNCE_MS = 180;
 
@@ -15,6 +27,7 @@ const PREVIEW_PATH_RE =
 
 /** DB / JSON preset_name shape used by this project. */
 const PRESET_NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
+const MAX_PRESET_TEXT_CHARS = 200;
 
 const els = {
   presetGrid: document.getElementById("preset-grid"),
@@ -37,6 +50,11 @@ const els = {
   fileError: document.getElementById("file-error"),
   apiError: document.getElementById("api-error"),
   fileMeta: document.getElementById("file-meta"),
+  presetTextWrap: document.getElementById("preset-text-wrap"),
+  presetText: document.getElementById("preset-text"),
+  presetTextCount: document.getElementById("preset-text-count"),
+  uploadPromptTitle: document.getElementById("upload-prompt-title"),
+  uploadPromptSub: document.getElementById("upload-prompt-sub"),
 };
 
 /** @type {string|null} */
@@ -51,7 +69,7 @@ let editedUrl = null;
 let generateGeneration = 0;
 /** Nested dragenter counter so child nodes don't flicker the drop highlight. */
 let dragDepth = 0;
-/** @type {Array<{ preset_name: string, ar: string, pre_edit_image: string, post_edit_image: string }>} */
+/** @type {Array<{ preset_name: string, ar: string, text_input: string, default_text: string, text_character_limit: number, pre_edit_image: string, post_edit_image: string }>} */
 let allGalleryPresets = [];
 /** Bumped on each search keystroke — ignores stale responses. */
 let searchGeneration = 0;
@@ -82,6 +100,47 @@ function isValidPresetName(name) {
  */
 function normalizeAr(value) {
   return value === "square" ? "square" : "non-square";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {"yes"|"no"}
+ */
+function normalizeTextInput(value) {
+  return value === "yes" ? "yes" : "no";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {number}
+ */
+function normalizeTextLimit(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.min(MAX_PRESET_TEXT_CHARS, Math.floor(n));
+}
+
+/**
+ * @param {unknown} value
+ * @param {number} limit
+ * @returns {string}
+ */
+function normalizeDefaultText(value, limit) {
+  const text = typeof value === "string" ? value : "";
+  if (limit > 0 && text.length > limit) return text.slice(0, limit);
+  if (text.length > MAX_PRESET_TEXT_CHARS) {
+    return text.slice(0, MAX_PRESET_TEXT_CHARS);
+  }
+  return text;
+}
+
+function selectedGalleryPreset() {
+  if (!selectedPresetName) return null;
+  return allGalleryPresets.find((p) => p.preset_name === selectedPresetName) ?? null;
+}
+
+function selectedPresetNeedsText() {
+  return selectedGalleryPreset()?.text_input === "yes";
 }
 
 /**
@@ -127,7 +186,65 @@ function clearError(el) {
 }
 
 function canGenerate() {
-  return Boolean(selectedPresetName && selectedFile);
+  if (!selectedPresetName || !selectedFile) return false;
+  if (selectedPresetNeedsText()) {
+    const preset = selectedGalleryPreset();
+    const limit = preset?.text_character_limit ?? 0;
+    const value = els.presetText?.value ?? "";
+    if (limit > 0 && value.length > limit) return false;
+  }
+  return true;
+}
+
+function isUploadEnabled() {
+  return Boolean(selectedPresetName);
+}
+
+function updateUploadPromptCopy() {
+  if (!els.uploadPromptTitle || !els.uploadPromptSub) return;
+  if (!isUploadEnabled()) {
+    els.uploadPromptTitle.textContent = "Select a preset first";
+    els.uploadPromptSub.textContent = "Then drop an image, or browse";
+    return;
+  }
+  els.uploadPromptTitle.textContent = "Drop an image, or browse";
+  els.uploadPromptSub.textContent = "PNG, JPG, WEBP, GIF";
+}
+
+function setUploadEnabled(enabled) {
+  els.dropZone.classList.toggle("drop-zone--locked", !enabled);
+  els.dropZone.setAttribute("aria-disabled", enabled ? "false" : "true");
+  els.input.disabled = !enabled;
+  updateUploadPromptCopy();
+}
+
+function updateTextCount() {
+  if (!els.presetTextCount || !els.presetText) return;
+  const limit = Number(els.presetText.maxLength) || 0;
+  const used = els.presetText.value.length;
+  els.presetTextCount.textContent = limit > 0 ? `${used} / ${limit}` : "";
+}
+
+function syncPresetTextField() {
+  if (!els.presetTextWrap || !els.presetText) return;
+  const preset = selectedGalleryPreset();
+  const needsText = preset?.text_input === "yes";
+  els.presetTextWrap.classList.toggle("hidden", !needsText);
+  els.presetTextWrap.toggleAttribute("hidden", !needsText);
+  if (!needsText) {
+    els.presetText.value = "";
+    els.presetText.removeAttribute("maxlength");
+    els.presetText.setAttribute("aria-hidden", "true");
+    if (els.presetTextCount) els.presetTextCount.textContent = "";
+    return;
+  }
+  const limit = preset.text_character_limit > 0
+    ? preset.text_character_limit
+    : MAX_PRESET_TEXT_CHARS;
+  els.presetText.removeAttribute("aria-hidden");
+  els.presetText.maxLength = limit;
+  els.presetText.value = normalizeDefaultText(preset.default_text, limit);
+  updateTextCount();
 }
 
 function isLoading() {
@@ -183,16 +300,28 @@ function setSelectedPreset(name) {
     els.selectedPresetLabel.textContent = "No preset selected";
     els.selectedPresetLabel.removeAttribute("title");
     els.presetGrid.removeAttribute("aria-activedescendant");
+    // Select-preset-first flow: clearing the preset also clears the upload.
+    if (selectedFile || originalUrl) {
+      els.input.value = "";
+      setSelectedFile(null);
+    }
   }
 
   if (els.presetReset) {
     els.presetReset.disabled = !name;
   }
 
+  setUploadEnabled(Boolean(name));
+  syncPresetTextField();
   updateGenerateEnabled();
 }
 
 function setSelectedFile(file) {
+  // Allow clearing even when upload is locked; only block new picks.
+  if (file && !isUploadEnabled()) {
+    els.input.value = "";
+    return;
+  }
   clearError(els.fileError);
   clearError(els.apiError);
   resetResult();
@@ -254,7 +383,7 @@ async function handleGenerate() {
 
   clearError(els.apiError);
 
-  const selected = allGalleryPresets.find((p) => p.preset_name === presetName);
+  const selected = selectedGalleryPreset();
   const uploadedIsSquare = isPreviewImageSquare();
   if (
     selected &&
@@ -265,10 +394,12 @@ async function handleGenerate() {
     return;
   }
 
+  const text = selectedPresetNeedsText() ? (els.presetText?.value ?? "") : undefined;
+
   setLoading(true);
 
   try {
-    const blob = await applyPreset(API_BASE, presetName, file);
+    const blob = await applyPreset(API_BASE, presetName, file, text);
     if (token !== generateGeneration) return;
 
     if (editedUrl) revokeObjectUrl(editedUrl);
@@ -349,7 +480,7 @@ function isPreviewImageSquare() {
 }
 
 /**
- * @param {Array<{ preset_name: string, ar: string, pre_edit_image: string, post_edit_image: string }>} presets
+ * @param {Array<{ preset_name: string, ar: string, text_input: string, default_text: string, text_character_limit: number, pre_edit_image: string, post_edit_image: string }>} presets
  * @param {{ emptyMessage?: string }} [options]
  */
 function renderPresetGrid(presets, options = {}) {
@@ -403,9 +534,13 @@ async function loadPresets() {
         skipped += 1;
         continue;
       }
+      const textLimit = normalizeTextLimit(preset.text_character_limit);
       allGalleryPresets.push({
         preset_name: preset.preset_name,
         ar: normalizeAr(preset.ar),
+        text_input: normalizeTextInput(preset.text_input),
+        default_text: normalizeDefaultText(preset.default_text, textLimit),
+        text_character_limit: textLimit,
         pre_edit_image: preset.pre_edit_image,
         post_edit_image: preset.post_edit_image,
       });
@@ -537,6 +672,7 @@ if (els.squareFilter) {
 
 els.dropZone.addEventListener("dragenter", (e) => {
   e.preventDefault();
+  if (!isUploadEnabled()) return;
   dragDepth += 1;
   els.dropZone.classList.add("drop-zone--active");
 });
@@ -557,6 +693,7 @@ els.dropZone.addEventListener("drop", (e) => {
   e.preventDefault();
   dragDepth = 0;
   els.dropZone.classList.remove("drop-zone--active");
+  if (!isUploadEnabled()) return;
 
   const file = e.dataTransfer?.files?.[0] ?? null;
   if (file) {
@@ -566,5 +703,12 @@ els.dropZone.addEventListener("drop", (e) => {
     setSelectedFile(file);
   }
 });
+
+if (els.presetText) {
+  els.presetText.addEventListener("input", () => {
+    updateTextCount();
+    updateGenerateEnabled();
+  });
+}
 
 loadPresets();

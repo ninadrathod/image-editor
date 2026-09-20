@@ -1,0 +1,57 @@
+{
+  "name": "polaroid_memory",
+  "label": "Polaroid memory",
+  "description": "Soft warm film grade, date/time stamp on the photo, classic white polaroid mat (1.4×), and a flow-script caption in the bottom band.",
+  "ar": "square",
+  "text_input": "yes",
+  "default_text": "instant memory",
+  "text_character_limit": 24,
+  "steps": [
+    {
+      "filter": "contrast",
+      "on": "image",
+      "amount": 1.08
+    },
+    {
+      "filter": "color",
+      "on": "image",
+      "amount": 0.92
+    },
+    {
+      "filter": "overlay",
+      "on": "image",
+      "color": [255, 236, 210],
+      "alpha": 0.12
+    },
+    {
+      "filter": "draw_text",
+      "on": "image",
+      "text": "$datetime",
+      "font_size": 22,
+      "color": [255, 255, 255],
+      "align": "top_right",
+      "font_style": "sans",
+      "stroke_width": 1,
+      "stroke_color": [40, 40, 40],
+      "margin": 14
+    },
+    {
+      "filter": "place_on_canvas",
+      "on": "image",
+      "scale": 1.4,
+      "fill": [255, 255, 255],
+      "layout": "polaroid",
+      "as": "image"
+    },
+    {
+      "filter": "draw_text",
+      "on": "image",
+      "text": "$text",
+      "font_size": 42,
+      "color": [55, 55, 55],
+      "align": "bottom",
+      "font_style": "flow",
+      "margin": 28
+    }
+  ]
+}

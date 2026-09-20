@@ -19,11 +19,12 @@ Detailed architecture for the preset-based local image editor.
 │  index.html + script.js                                      │
 │    ├─ left: search + square switch + preset gallery          │
 │    │         (GET /api/presets/search filters previews)      │
-│    ├─ right: upload + edited result                          │
+│    ├─ right: upload (after preset) + optional text + result  │
 │    ├─ js/image.js   → validate MIME / extension, object URLs │
 │    └─ js/api.js     → searchPresets + applyPreset FormData   │
 └────────────────────────────┬─────────────────────────────────┘
                              │ multipart: preset_name + file
+                             │            (+ optional text)
                              ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Local FastAPI (uvicorn) on port 8000                        │
@@ -42,32 +43,33 @@ Detailed architecture for the preset-based local image editor.
 
 - `index.html` — full-width two-column UI (Tailwind via CDN, Pop Poster theme in `css/styles.css` — Lilita One brand / Fredoka+Nunito UI, coral CTA, lemon header):
   - **Left (~65%):** search input, **Input square?** yes/no switch, and preset grid (post-edit preview + name; hover/focus reveals pre-edit original); search reloads the grid from DB name/keyword matches; **No** hides `ar=square` presets.
-  - **Right (~35%):** file upload / original preview, then **Generate edit** / **Download**, then edited result.
-- `script.js` — wires gallery load, debounced search (filters gallery), selection, file pick/drag-drop, generate button.
+  - **Right (~35%):** file upload / original preview (enabled after a preset is selected), optional preset text field, then **Generate edit** / **Download**, then edited result.
+- `script.js` — wires gallery load, debounced search (filters gallery), selection, upload unlock, optional text constraints, file pick/drag-drop, generate button.
 - `js/image.js` — `isImageFile`, object URL create/revoke.
-- `js/api.js` — `searchPresets(baseUrl, query)` → match list; `applyPreset(baseUrl, presetName, file)` → `Blob` (also retains `blurImage` for `/api/blur`).
+- `js/api.js` — `searchPresets(baseUrl, query)` → match list; `applyPreset(baseUrl, presetName, file, text?)` → `Blob` (also retains `blurImage` for `/api/blur`).
 
 ### UX flow
 
-1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails with pre-edit originals stacked underneath (entries must use a valid `preset_name`, `ar` of `square` or `non-square`, and relative paths under `previews/pre-edit/` and `previews/post-edit/`). Hover or keyboard focus reveals the original.
+1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails with pre-edit originals stacked underneath (entries must use a valid `preset_name`, `ar` of `square` or `non-square`, `text_input` of `yes` or `no`, `default_text`, `text_character_limit`, and relative paths under `previews/pre-edit/` and `previews/post-edit/`). Hover or keyboard focus reveals the original.
 2. User can set **Input square?** to **Yes** (show all presets) or **No** (show only `ar=non-square` presets).
 3. User clicks a preset card to select it, **or** types in the left-column search box (debounced) to query DB `preset_name` + keywords via `GET /api/presets/search?q=…` — the gallery reloads to matching presets only (cleared query restores the AR-filtered gallery).
-4. User selects or drops a file; client rejects non-images and shows an inline error.
-5. Original preview uses a local object URL.
-6. When **both** preset and file are set, **Generate edit** enables.
-7. On generate, the file + preset name are posted to the API; a loading state covers the result panel. Changing preset/file while a request is in flight discards the stale response. A `ar=square` preset on a non-square image is rejected (client + HTTP **400**).
-8. Response blob is shown via another object URL; download link reuses that URL.
-9. Refresh clears all in-memory state (no persistence of upload or result).
+4. Selecting a preset unlocks the upload form. If `text_input` is `yes`, a text field appears prefilled with `default_text` and capped at `text_character_limit`.
+5. User selects or drops a file; client rejects non-images and shows an inline error.
+6. Original preview uses a local object URL.
+7. When **both** preset and file are set, **Generate edit** enables.
+8. On generate, the file + preset name (+ `text` when required) are posted to the API; a loading state covers the result panel. Changing preset/file while a request is in flight discards the stale response. A `ar=square` preset on a non-square image is rejected (client + HTTP **400**). Oversized preset text is rejected (HTTP **400**).
+9. Response blob is shown via another object URL; download link reuses that URL.
+10. Refresh clears all in-memory state (no persistence of upload or result).
 
 ### Config
 
-- API base URL is currently hard-coded in `script.js` as `http://localhost:8000`.
+- API base URL is derived in `script.js` from the page host (`127.0.0.1:8000` when the UI is on `localhost`, otherwise same hostname on port 8000).
 
 ### Preset preview assets
 
 - `previews/pre-edit/` — open-licensed source photo per shipped DB preset (see `previews/CREDITS.md`).
 - `previews/post-edit/` — same photo after that preset is applied.
-- `previews/presets.json` — array of `{ preset_name, ar, pre_edit_image, post_edit_image }` (repo-relative paths). Consumed by the index gallery. `ar` is `square` or `non-square`.
+- `previews/presets.json` — array of `{ preset_name, ar, text_input, default_text, text_character_limit, pre_edit_image, post_edit_image }` (repo-relative paths). Consumed by the index gallery. `ar` is `square` or `non-square`. `text_input` is `yes` or `no`.
 
 ### Marketing page
 
@@ -96,6 +98,7 @@ backend/
     apply_preset.py      # CLI: apply JSON preset steps to an image
   presets/
     bw_bg_glowing_subject.json
+    polaroid_memory.json
   database/
     schema.sql           # presets table
     init_db.py           # create presets.db
@@ -127,9 +130,9 @@ test-suite/              # pytest unit tests for services only (not routes/HTTP)
 | Method | Path | Request | Response |
 |--------|------|---------|----------|
 | GET | `/health` | — | `{ "status": "ok" }` |
-| GET | `/api/presets/search` | query `q` (name/keyword substring, max 64) | JSON `[{ "preset_name", "keywords", "ar" }, …]` |
+| GET | `/api/presets/search` | query `q` (name/keyword substring, max 64) | JSON `[{ "preset_name", "keywords", "ar", "text_input", "default_text", "text_character_limit" }, …]` |
 | POST | `/api/blur` | `multipart/form-data` field `file` | `image/png` bytes |
-| POST | `/api/apply-preset` | `multipart/form-data` fields `preset_name`, `file` | `image/png` bytes |
+| POST | `/api/apply-preset` | `multipart/form-data` fields `preset_name`, `file`, optional `text` (max 200) | `image/png` bytes |
 
 Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, empty file, unknown preset, decode failure, square-only preset on a non-square image). Oversized uploads/images return **413**. Apply-preset returns **503** when the concurrency gate is full.
 
@@ -151,13 +154,16 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 
 ### JSON preset pipeline
 
-- Presets live in `backend/presets/*.json` as ordered `steps` with named layers (`image`, `subject`, `background`, …).
+- Presets live in `backend/presets/*.json` as ordered `steps`. Each step sets `"filter"` to a registered helper name plus that helper's parameters. The runner looks the function up in `FILTERS` — it does not branch on filter type. String params equal to (or containing) `$text` receive the user/default text.
 - Runner: `backend/helpers/apply_preset.py` (uses `filters.py`).
-- HTTP: `POST /api/apply-preset` looks up `preset_name` in `presets.db`, loads that JSON path, runs the same runner, returns PNG (`app/services/preset.py` + `app/routes/preset.py`). Presets with `"ar": "square"` reject non-square input images (`PresetAspectRatioError` → HTTP **400**).
-- Built-in filters: `extract_subject`, `brightness`, `color`, `contrast`, `overlay`, `grayscale`, `glow_border`, `glow_line_border`, `composite`.
+- HTTP: `POST /api/apply-preset` looks up `preset_name` in `presets.db`, loads that JSON path, runs the same runner, returns PNG (`app/services/preset.py` + `app/routes/preset.py`). The route does not choose filters; it passes `preset_name`, the image, and optional `text`. Presets with `"ar": "square"` reject non-square input images (`PresetAspectRatioError` → HTTP **400**). Presets with `"text_input": "yes"` validate `text` against `text_character_limit` (`PresetTextError` → HTTP **400**); omitted text uses `default_text`.
+- Built-in filters: `extract_subject`, `brightness`, `color`, `contrast`, `overlay`, `grayscale`, `glow_border`, `glow_line_border`, `composite`, `draw_text`, `place_on_canvas`.
 - `glow_line_border` draws a colored outline ring only (does not fill/glow the subject body). Pass `"color": [R,G,B]` (or `"rgb"`).
+- `draw_text` paints `text` onto a layer. Use `"$text"` for user caption, or `"$datetime"` / `"$date"` / `"$time"` for apply-time stamps. Common params: `font_size`, `color`/`rgb`, `align` (`center`/`top`/`bottom`/`top_right`/…), `font_style` (`sans`/`flow`), `margin`, `x`/`y`, `stroke_width`.
+- `place_on_canvas` puts a layer on a larger solid canvas (`scale`, `fill`, `layout`: `polaroid` or `center`).
 - Shipped presets:
-  - `bw_bg_glowing_subject` — extract → grayscale background → `glow_line_border` on subject → composite
+  - `bw_bg_glowing_subject` — extract → grayscale background → `glow_line_border` on subject → composite (`text_input: no`)
+  - `polaroid_memory` — soft warm grade → `$datetime` stamp → 1.4× white polaroid mat → flow `$text` caption (`ar: square`, `text_input: yes`)
 - Example CLI: `python backend/helpers/apply_preset.py photo.jpg -p bw_bg_glowing_subject -o out.png`
 - Human/agent guide: `backend/presets/PRESETS.md`
 - New-preset workflow skill: `.cursor/skills/create-preset/SKILL.md`
@@ -165,9 +171,9 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 ### Preset metadata database
 
 - Location: `backend/database/` (SQLite file `presets.db`, same pattern as a lightweight local store).
-- Table `presets`: `preset_id` (PK auto), `preset_name`, `preset_path`, `keywords` (JSON list), `ar` (`square` or `non-square`, default `non-square`), `created_date` (auto `datetime('now')`). Existing DBs gain `ar` via `migrate_schema()`.
+- Table `presets`: `preset_id` (PK auto), `preset_name`, `preset_path`, `keywords` (JSON list), `ar` (`square` or `non-square`, default `non-square`), `text_input` (`yes` or `no`, default `no`), `default_text` (default `''`), `text_character_limit` (integer, default `0`, max 200), `created_date` (auto `datetime('now')`). Existing DBs gain `ar` and text columns via `migrate_schema()`.
 - Service functions: `backend/database/db_ops.py` (`add_preset`, `list_presets`, `search_presets_by_keyword`, `get_preset_by_id`, `update_preset`, `delete_preset`, `seed_default_presets`).
-- Keyword search API: `GET /api/presets/search?q=…` → case-insensitive substring match against each preset’s `preset_name` and keywords (`services/preset_search.py` + `routes/search.py`).
+- Keyword search API: `GET /api/presets/search?q=…` → case-insensitive substring match against each preset’s `preset_name` and keywords (`services/preset_search.py` + `routes/search.py`). Returns `ar` plus text-input metadata.
 - `./scripts/setup.sh` runs `init_db()` and seeds `bw_bg_glowing_subject`.
 
 ### CORS

@@ -27,6 +27,9 @@ def search_presets_endpoint(
             "preset_name": row["preset_name"],
             "keywords": row["keywords"],
             "ar": row.get("ar", "non-square"),
+            "text_input": row.get("text_input", "no"),
+            "default_text": row.get("default_text", ""),
+            "text_character_limit": row.get("text_character_limit", 0),
         }
         for row in rows
     ]
