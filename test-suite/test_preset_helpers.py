@@ -121,6 +121,60 @@ def test_draw_text_paints_over_background() -> None:
     assert out.convert("L").getextrema()[1] > 0
 
 
+def _first_truetype_path() -> str:
+    for path in F._SANS_FONT_CANDIDATES:
+        if Path(path).is_file():
+            return path
+    from PIL import ImageFont
+
+    try:
+        ImageFont.truetype("DejaVuSans.ttf", 12)
+        return "DejaVuSans.ttf"
+    except OSError:
+        pytest.skip("No TrueType font available")
+
+
+def test_draw_text_font_path_paints_like_align() -> None:
+    font_path = _first_truetype_path()
+    image = Image.new("RGB", (160, 80), (0, 0, 0))
+    out = F.draw_text(
+        image,
+        text="HI",
+        font_size=28,
+        color=(255, 255, 255),
+        align="bottom",
+        font_path=font_path,
+    )
+    gray = out.convert("L")
+    top_ink = gray.crop((0, 0, 160, 24)).getextrema()[1]
+    bottom_ink = gray.crop((0, 56, 160, 80)).getextrema()[1]
+    assert bottom_ink > top_ink
+    assert gray.getextrema()[1] > 0
+
+
+def test_draw_text_missing_font_path_raises() -> None:
+    image = Image.new("RGB", (32, 32), (0, 0, 0))
+    with pytest.raises(ValueError, match="Could not load font"):
+        F.draw_text(image, text="HI", font_path="/no/such/font.ttf")
+
+
+def test_apply_steps_font_path() -> None:
+    font_path = _first_truetype_path()
+    image = Image.new("RGB", (96, 96), (0, 0, 0))
+    steps = [
+        {
+            "filter": "draw_text",
+            "on": "image",
+            "text": "HI",
+            "font_size": 28,
+            "color": [255, 255, 255],
+            "font_path": font_path,
+        }
+    ]
+    out = apply_steps(image, steps)
+    assert out.convert("L").getextrema()[1] > 0
+
+
 def test_apply_steps_binds_text_placeholder() -> None:
     image = Image.new("RGB", (96, 96), (0, 0, 0))
     steps = [
@@ -198,3 +252,27 @@ def test_apply_polaroid_memory_on_square(tmp_path: Path) -> None:
         now=datetime(2026, 9, 20, 18, 30),
     )
     assert out.size == (112, 112)
+
+
+def test_warm_faded_print_preset_file() -> None:
+    data = load_preset(PRESETS / "warm_faded_print.json")
+    assert data["ar"] == "non-square"
+    assert data["text_input"] == "no"
+    assert data["default_text"] == ""
+    assert data["text_character_limit"] == 0
+    assert [s["filter"] for s in data["steps"]] == [
+        "contrast",
+        "color",
+        "brightness",
+        "overlay",
+    ]
+
+
+def test_apply_warm_faded_print_on_non_square() -> None:
+    src = (40, 90, 160)
+    wide = Image.new("RGB", (24, 16), src)
+    out = apply_preset(wide, PRESETS / "warm_faded_print.json")
+    assert out.size == wide.size
+    pixel = out.convert("RGB").getpixel((12, 8))
+    assert pixel[0] > src[0]
+    assert pixel[2] < src[2]

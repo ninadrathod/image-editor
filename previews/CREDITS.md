@@ -17,3 +17,10 @@ Attribution is required where the license says so.
 - **Photographer:** [Caleb Ekeroth](https://unsplash.com/@calebekeroth) (via Wikimedia Commons Unsplash CC0 archive)
 - **License:** [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 - **Files:** `pre-edit/polaroid_memory.jpg` → `post-edit/polaroid_memory.png` (preset `polaroid_memory`)
+
+## `warm_faded_print`
+
+- **Photograph:** [Taling Chan floating market](https://commons.wikimedia.org/wiki/File:Taling_Chan_floating_market.jpg)
+- **Photographer:** [Paolobon140](https://commons.wikimedia.org/wiki/User:Paolobon140)
+- **License:** [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+- **Files:** `pre-edit/warm_faded_print.jpg` → `post-edit/warm_faded_print.png` (preset `warm_faded_print`)

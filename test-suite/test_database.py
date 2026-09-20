@@ -70,9 +70,13 @@ def test_seed_default_presets_is_idempotent(tmp_path: Path) -> None:
     init_db(db)
     first = seed_default_presets(db_path=db)
     second = seed_default_presets(db_path=db)
-    assert len(first) == 2
+    assert len(first) == 3
     names = {row["preset_name"] for row in first}
-    assert names == {"bw_bg_glowing_subject", "polaroid_memory"}
+    assert names == {
+        "bw_bg_glowing_subject",
+        "polaroid_memory",
+        "warm_faded_print",
+    }
     by_name = {row["preset_name"]: row for row in first}
     assert by_name["bw_bg_glowing_subject"]["ar"] == "non-square"
     assert by_name["bw_bg_glowing_subject"]["text_input"] == "no"
@@ -80,8 +84,12 @@ def test_seed_default_presets_is_idempotent(tmp_path: Path) -> None:
     assert by_name["polaroid_memory"]["text_input"] == "yes"
     assert by_name["polaroid_memory"]["default_text"] == "instant memory"
     assert by_name["polaroid_memory"]["text_character_limit"] == 24
+    assert by_name["warm_faded_print"]["ar"] == "non-square"
+    assert by_name["warm_faded_print"]["text_input"] == "no"
+    assert by_name["warm_faded_print"]["default_text"] == ""
+    assert by_name["warm_faded_print"]["text_character_limit"] == 0
     assert second == []
-    assert len(list_presets(db_path=db)) == 2
+    assert len(list_presets(db_path=db)) == 3
 
 
 def test_seed_default_presets_syncs_text_fields(tmp_path: Path) -> None:
@@ -100,7 +108,10 @@ def test_seed_default_presets_syncs_text_fields(tmp_path: Path) -> None:
     assert row["text_input"] == "yes"
 
     created = seed_default_presets(db_path=db)
-    assert [row["preset_name"] for row in created] == ["polaroid_memory"]
+    assert [row["preset_name"] for row in created] == [
+        "polaroid_memory",
+        "warm_faded_print",
+    ]
     synced = get_preset_by_name("bw_bg_glowing_subject", db_path=db)
     assert synced is not None
     assert synced["ar"] == "non-square"

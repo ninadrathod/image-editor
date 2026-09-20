@@ -16,5 +16,14 @@
     "text_character_limit": 24,
     "pre_edit_image": "previews/pre-edit/polaroid_memory.jpg",
     "post_edit_image": "previews/post-edit/polaroid_memory.png"
+  },
+  {
+    "preset_name": "warm_faded_print",
+    "ar": "non-square",
+    "text_input": "no",
+    "default_text": "",
+    "text_character_limit": 0,
+    "pre_edit_image": "previews/pre-edit/warm_faded_print.jpg",
+    "post_edit_image": "previews/post-edit/warm_faded_print.png"
   }
 ]

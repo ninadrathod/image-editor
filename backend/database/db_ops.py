@@ -382,6 +382,31 @@ def seed_default_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
             "default_text": "instant memory",
             "text_character_limit": 24,
         },
+        {
+            "preset_name": "warm_faded_print",
+            "preset_path": "backend/presets/warm_faded_print.json",
+            "keywords": [
+                "vintage",
+                "faded",
+                "warm",
+                "amber",
+                "print",
+                "film",
+                "retro",
+                "sepia-adjacent",
+                "nostalgic",
+                "analog",
+                "sun-faded",
+                "cream",
+                "photograph",
+                "color-grade",
+                "old-photo",
+            ],
+            "ar": "non-square",
+            "text_input": "no",
+            "default_text": "",
+            "text_character_limit": 0,
+        },
     ]
     created: list[dict[str, Any]] = []
     for item in defaults:

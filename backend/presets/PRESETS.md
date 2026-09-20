@@ -2,8 +2,11 @@
 
 Guide for The Local Studio JSON presets: what exists today, and how to add a new one.
 
-For the agent workflow (POC → name → keywords → ar → ship), use the project skill
-`.cursor/skills/create-preset/SKILL.md`.
+For the agent workflow (POC → name → keywords → ar → text → fonts → ship → gallery),
+use the project skill `.cursor/skills/create-preset/SKILL.md`. Visual option rounds
+write comparison HTML under `previews/_candidates/` via
+`.cursor/skills/create-preset/scripts/render_candidates.py` (calls `apply_preset.py`
+and `filters.draw_text`).
 
 ## Layout
 
@@ -16,6 +19,8 @@ For the agent workflow (POC → name → keywords → ar → ship), use the proj
 | `backend/helpers/download_model.py` | Warm-cache `u2net` during setup |
 | `backend/database/` | SQLite metadata (`presets.db`, `db_ops.py`) |
 | `previews/pre-edit/` + `previews/post-edit/` + `previews/presets.json` | Before/after gallery assets per DB preset + name→path map (sources in `previews/CREDITS.md`) |
+| `previews/_candidates/` | Gitignored create-preset comparison HTML (POC / fonts / gallery); not shipped |
+| `.cursor/skills/create-preset/scripts/render_candidates.py` | Writes those HTML pages using `apply_preset_file` + `draw_text` |
 | `POST /api/apply-preset` | HTTP: DB `preset_name` + image upload + optional `text` → PNG |
 
 ## Run a preset
@@ -57,6 +62,14 @@ Only one apply-preset job runs at a time; concurrent extras get HTTP **503**.
 - **Text input:** `yes` — default `instant memory`, limit **24**
 - **DB:** seeded via `seed_default_presets()` / setup
 
+### `warm_faded_print`
+
+- **Idea:** Softer contrast → muted saturation → slight brightness lift → cream-amber overlay (sun-faded color print).
+- **File:** `backend/presets/warm_faded_print.json`
+- **AR:** `non-square` (any aspect ratio)
+- **Text input:** `no`
+- **DB:** seeded via `seed_default_presets()` / setup
+
 ## Built-in filters
 
 | Filter | What it does | Common params |
@@ -71,7 +84,7 @@ Only one apply-preset job runs at a time; concurrent extras get HTTP **503**.
 | `glow_line_border` | Outline **ring** only (subject body unchanged) | `on`, `color`/`rgb`, `width`, `blur` |
 | `composite` | Paste overlay on base | `base`, `overlay`, `as` |
 | `place_on_canvas` | Put layer on a larger solid canvas | `on`, `scale` (e.g. `1.4`), `fill`/`color`, `layout` (`polaroid` or `center`), `as` |
-| `draw_text` | Paint a string onto a layer | `on`, `text` (`$text` / `$datetime` / `$date` / `$time`), `font_size`, `color`/`rgb`, `align` (`center`/`top`/`bottom`/`top_right`/…), `font_style` (`sans`/`flow`), `margin`, `x`, `y`, `stroke_width` |
+| `draw_text` | Paint a string onto a layer | `on`, `text` (`$text` / `$datetime` / `$date` / `$time`), `font_size`, `color`/`rgb`, `align` (`center`/`top`/`bottom`/`top_right`/…), `font_style` (`sans`/`flow`), `font_path` (optional TTF/OTF/TTC; overrides `font_style`), `margin`, `x`, `y`, `stroke_width` |
 
 Layers are named images in memory. Typical keys: `image`, `subject`, `background`.
 
@@ -166,20 +179,21 @@ print(search_presets_by_keyword("glow"))
 
 1. Describe the look in plain language (optional reference images).
 2. Ask the agent to use **create-preset** (or follow that skill).
-3. Review temporary POC outputs under `/tmp` and pick one recipe.
+3. Review the comparison page at `previews/_candidates/poc/index.html` (agent writes it with `render_candidates.py`, which runs `apply_preset.py`) and pick one recipe.
 4. Pick a final `snake_case` preset name.
 5. Finalize the keywords list.
 6. Finalize `ar`: `square` (square-only) or `non-square` (any aspect ratio).
 7. Finalize text input: `text_input` `yes`/`no`; if yes, also `default_text` and `text_character_limit` (1–200).
-8. Agent then ships code:
+8. If the look uses `draw_text`, pick a font from `previews/_candidates/fonts/index.html`.
+9. Agent then ships code:
    - adds helpers/filters only if needed (register in `FILTERS`; no API if/else)
    - writes `backend/presets/<name>.json` (include `"ar"` and `text_input` / `default_text` / `text_character_limit`)
    - inserts a row with `add_preset(..., ar=..., text_input=..., default_text=..., text_character_limit=...)`
    - updates this file + CONTEXT/ARCHITECTURE (+ tests if needed)
-9. Gallery previews (gated — see create-preset skill step 8):
+10. Gallery previews (gated — see create-preset skill step 8):
    - search open-licensed candidates that suit the preset
-   - crop square + downsample to **720×720**
-   - apply preset (pass `--text` when `text_input=yes`) and let you pick the best preview
+   - agent writes `previews/_candidates/gallery/index.html` (`render_candidates.py gallery`: square crop + **720×720** + `apply_preset.py`; `--crop ID=left|right|top|bottom` when center clips the subject; pass `--text` when `text_input=yes`)
+   - pick the best preview from that page
    - write `previews/pre-edit/<name>.*`, `previews/post-edit/<name>.png`, `previews/presets.json`, and `previews/CREDITS.md`
 
 ## Adding a new filter (when needed)
