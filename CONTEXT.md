@@ -10,7 +10,7 @@ A local **image editor** for applying JSON presets to photos:
 2. Image upload unlocks after a preset is selected. If that preset has `text_input: yes`, a text field appears (default + character limit from the preset).
 3. Frontend `POST`s preset name + file (+ optional `text`) to `POST /api/apply-preset`.
 4. Backend resolves the preset from SQLite, runs the JSON filter pipeline (each step names a helper + params; `$text` is bound in), returns a PNG.
-5. Frontend shows (and can download) the result. Refresh clears in-memory session state.
+5. Frontend shows (and can download) the result. Clicking **Download** increments `popular.used_count` immediately. The gallery does not reorder until the refresh control beside search is clicked (with **Popular** on). A page refresh clears in-memory session state.
 
 Repo: https://github.com/ninadrathod/local-studio
 
@@ -57,17 +57,20 @@ Repo: https://github.com/ninadrathod/local-studio
 - Blur endpoint: `POST /api/blur` (multipart field name: `file`)
 - Apply-preset endpoint: `POST /api/apply-preset` (multipart fields: `preset_name`, `file`, optional `text`) → PNG
 - Preset search: `GET /api/presets/search?q=…` → JSON list of `{ preset_name, keywords, ar, text_input, default_text, text_character_limit }` (matches name or keywords)
+- Popular / download count: `POST /api/presets/use` form field `preset_name` → `{ preset_id, used_count }`; `GET /api/presets/popular` → `{ preset_id, preset_name, used_count }` sorted by `used_count` descending
 - Upload caps (blur + apply-preset): 20 MiB body, max side 8000 px / 25M pixels; preset JSON paths must stay under `backend/presets/`
 - Apply-preset concurrency: 1 in-flight job (extra requests get **503**)
 
 ## Current scope
 
-- Preset gallery (left, ~65% width on desktop): search + **Input square?** yes/no switch + post-edit thumbnails from `previews/presets.json`; hover/focus reveals pre-edit original; click to select
+- Preset gallery (left, ~65% width on desktop): search + **Input square?** yes/no switch + **Popular** mode (off by default) + refresh control beside search + post-edit thumbnails from `previews/presets.json`; hover/focus reveals pre-edit original; click to select
 - Search filters the gallery in place via realtime `GET /api/presets/search?q=…` (DB `preset_name` + `keywords`)
 - **Input square?** **Yes** shows all presets; **No** hides `ar=square` presets
+- **Popular** selects popular-sort mode. The search-row refresh reloads the visible gallery from `GET /api/presets/popular` (`used_count` descending). Download does not reorder the grid.
 - Image upload (right, ~35% width on desktop): locked until a preset is selected; clearing the preset clears the upload; then client-side type check + preview
 - Studio UI uses the full browser viewport (no page scroll); the preset gallery scrolls internally when needed
 - Generate edit when both preset + file are set → `POST /api/apply-preset` → result + download
+- Download click increments `popular.used_count` for the selected preset (`POST /api/presets/use`) without reordering the gallery
 - Applying a `ar=square` preset to a non-square image fails with HTTP **400**
 - Presets with `text_input: yes` show a text field (`default_text`, `maxlength` from `text_character_limit`, max 200) and send `text` with generate
 - Session state is in-memory only (refresh clears upload + edited result)
@@ -78,7 +81,7 @@ Optional helpers:
 - `backend/helpers/extract_subject.py` — background removal (rembg / `u2net`)
 - `backend/helpers/apply_preset.py` — run a JSON preset from `backend/presets/` (also used by the apply-preset API)
 - Example presets: `bw_bg_glowing_subject`, `polaroid_memory` (square-only; optional caption via `text_input`), `warm_faded_print` (any aspect ratio; sun-faded color grade)
-- `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords, `ar`, `text_input`, `default_text`, `text_character_limit`). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
+- `backend/database/` — lightweight SQLite file (`presets.db`) for preset metadata (name, path, keywords, `ar`, `text_input`, `default_text`, `text_character_limit`) plus `popular` download counts (`preset_id` FK, `used_count`). Ops in `db_ops.py`; created/seeded by `./scripts/setup.sh`.
 - `previews/` — static preset gallery assets (`pre-edit/` + `post-edit/` + `presets.json`); wired into the index UI gallery
 - Preset catalog + how-to: `backend/presets/PRESETS.md`
 - To design/ship a new preset from plain language, use skill `.cursor/skills/create-preset/` (visual option rounds write `previews/_candidates/<round>/index.html` via `scripts/render_candidates.py`, which calls `apply_preset` + `draw_text`)

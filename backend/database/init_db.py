@@ -10,8 +10,29 @@ DB_PATH = DATABASE_DIR / "presets.db"
 SCHEMA_PATH = DATABASE_DIR / "schema.sql"
 
 
+POPULAR_SCHEMA = """
+CREATE TABLE IF NOT EXISTS popular (
+    preset_id INTEGER PRIMARY KEY,
+    used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0),
+    FOREIGN KEY (preset_id) REFERENCES presets(preset_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_popular_used_count ON popular (used_count DESC);
+"""
+
+
+def _ensure_popular_table(conn: sqlite3.Connection) -> None:
+    """Create `popular` and backfill a 0-count row for every preset."""
+    conn.executescript(POPULAR_SCHEMA)
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO popular (preset_id, used_count)
+        SELECT preset_id, 0 FROM presets
+        """
+    )
+
+
 def migrate_schema(conn: sqlite3.Connection) -> None:
-    """Add columns introduced after the original schema (existing DBs)."""
+    """Add columns/tables introduced after the original schema (existing DBs)."""
     cols = {row[1] for row in conn.execute("PRAGMA table_info(presets)").fetchall()}
     if not cols:
         return
@@ -32,6 +53,7 @@ def migrate_schema(conn: sqlite3.Connection) -> None:
             "ALTER TABLE presets ADD COLUMN text_character_limit "
             "INTEGER NOT NULL DEFAULT 0"
         )
+    _ensure_popular_table(conn)
 
 
 def init_db(db_path: Path = DB_PATH) -> Path:
@@ -40,6 +62,7 @@ def init_db(db_path: Path = DB_PATH) -> Path:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
         conn.executescript(schema)
         migrate_schema(conn)
         conn.commit()

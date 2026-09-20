@@ -74,6 +74,79 @@ export async function searchPresets(baseUrl, query) {
 }
 
 /**
+ * GET popular presets ordered by used_count descending.
+ * @param {string} baseUrl - API origin, e.g. http://localhost:8000
+ * @returns {Promise<Array<{ preset_id: number, preset_name: string, used_count: number }>>}
+ */
+export async function listPopularPresets(baseUrl) {
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/api/presets/popular`);
+  } catch {
+    throw new Error(
+      `Could not reach the API at ${baseUrl}. Is the backend running (./scripts/run.sh)?`,
+    );
+  }
+
+  if (!response.ok) {
+    let detail = "Could not load popular presets.";
+    try {
+      const data = await response.json();
+      if (data.detail) detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+    } catch {
+      /* ignore non-JSON error bodies */
+    }
+    throw new Error(detail);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * POST a download/use event to /api/presets/use (increments popular.used_count).
+ * @param {string} baseUrl - API origin, e.g. http://localhost:8000
+ * @param {string} presetName - DB preset_name
+ * @returns {Promise<{ preset_id: number, used_count: number }>}
+ */
+export async function recordPresetUse(baseUrl, presetName) {
+  const name = String(presetName || "").trim();
+  if (!name) {
+    throw new Error("preset_name is required");
+  }
+
+  const form = new URLSearchParams();
+  form.set("preset_name", name);
+
+  let response;
+  try {
+    // urlencoded body is a "simple" CORS request (no preflight). Do not use
+    // keepalive: browsers can drop cross-origin keepalive POSTs.
+    response = await fetch(`${baseUrl}/api/presets/use`, {
+      method: "POST",
+      body: form,
+    });
+  } catch {
+    throw new Error(
+      `Could not reach the API at ${baseUrl}. Is the backend running (./scripts/run.sh)?`,
+    );
+  }
+
+  if (!response.ok) {
+    let detail = "Could not record preset use.";
+    try {
+      const data = await response.json();
+      if (data.detail) detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+    } catch {
+      /* ignore non-JSON error bodies */
+    }
+    throw new Error(detail);
+  }
+
+  return response.json();
+}
+
+/**
  * POST preset name + image (+ optional text) to /api/apply-preset and return the result as a Blob.
  * @param {string} baseUrl - API origin, e.g. http://localhost:8000
  * @param {string} presetName - DB preset_name

@@ -17,11 +17,11 @@ Detailed architecture for the preset-based local image editor.
 ┌──────────────────────────────────────────────────────────────┐
 │  Browser                                                     │
 │  index.html + script.js                                      │
-│    ├─ left: search + square switch + preset gallery          │
+│    ├─ left: search + square switch + popular + preset gallery │
 │    │         (GET /api/presets/search filters previews)      │
 │    ├─ right: upload (after preset) + optional text + result  │
 │    ├─ js/image.js   → validate MIME / extension, object URLs │
-│    └─ js/api.js     → searchPresets + applyPreset FormData   │
+│    └─ js/api.js     → searchPresets + applyPreset + recordPresetUse   │
 └────────────────────────────┬─────────────────────────────────┘
                              │ multipart: preset_name + file
                              │            (+ optional text)
@@ -30,8 +30,10 @@ Detailed architecture for the preset-based local image editor.
 │  Local FastAPI (uvicorn) on port 8000                        │
 │    routes/preset.py → validate upload, orchestrate           │
 │    routes/search.py → name/keyword substring search          │
+│    routes/popular.py → increment/list download counts        │
 │    services/preset.py → DB name → JSON path → apply_preset   │
 │    services/preset_search.py → DB name + keyword match       │
+│    services/preset_popular.py → increment popular.used_count │
 │    services/image_io.py → decode bytes ↔ Pillow / PNG encode │
 │    helpers/apply_preset.py + filters.py → filter pipeline    │
 └──────────────────────────────────────────────────────────────┘
@@ -42,23 +44,23 @@ Detailed architecture for the preset-based local image editor.
 ### Entry points
 
 - `index.html` — full-width two-column UI (Tailwind via CDN, Pop Poster theme in `css/styles.css` — Lilita One brand / Fredoka+Nunito UI, coral CTA, lemon header):
-  - **Left (~65%):** search input, **Input square?** yes/no switch, and preset grid (post-edit preview + name; hover/focus reveals pre-edit original); search reloads the grid from DB name/keyword matches; **No** hides `ar=square` presets.
+  - **Left (~65%):** search input, **Input square?** yes/no switch, **Popular** mode (off by default), refresh control beside search, and preset grid (post-edit preview + name; hover/focus reveals pre-edit original); search reloads the grid from DB name/keyword matches; **No** hides `ar=square` presets.
   - **Right (~35%):** file upload / original preview (enabled after a preset is selected), optional preset text field, then **Generate edit** / **Download**, then edited result.
-- `script.js` — wires gallery load, debounced search (filters gallery), selection, upload unlock, optional text constraints, file pick/drag-drop, generate button.
+- `script.js` — wires gallery load, debounced search (filters gallery), selection, upload unlock, optional text constraints, file pick/drag-drop, generate button, download use-count ping, popular-sort mode, search-row gallery refresh.
 - `js/image.js` — `isImageFile`, object URL create/revoke.
-- `js/api.js` — `searchPresets(baseUrl, query)` → match list; `applyPreset(baseUrl, presetName, file, text?)` → `Blob` (also retains `blurImage` for `/api/blur`).
+- `js/api.js` — `searchPresets(baseUrl, query)` → match list; `listPopularPresets(baseUrl)` → popular rows; `applyPreset(baseUrl, presetName, file, text?)` → `Blob`; `recordPresetUse(baseUrl, presetName)` → `{ preset_id, used_count }` (also retains `blurImage` for `/api/blur`).
 
 ### UX flow
 
 1. Gallery loads from `previews/presets.json` and renders post-edit thumbnails with pre-edit originals stacked underneath (entries must use a valid `preset_name`, `ar` of `square` or `non-square`, `text_input` of `yes` or `no`, `default_text`, `text_character_limit`, and relative paths under `previews/pre-edit/` and `previews/post-edit/`). Hover or keyboard focus reveals the original.
-2. User can set **Input square?** to **Yes** (show all presets) or **No** (show only `ar=non-square` presets).
+2. User can set **Input square?** to **Yes** (show all presets) or **No** (show only `ar=non-square` presets). **Popular** (off by default) is a mode only — it does not reload the gallery. The refresh button beside the search box fetches `GET /api/presets/popular` and reorders visible cards by `used_count` descending. Download increments the table immediately but does not reorder the grid.
 3. User clicks a preset card to select it, **or** types in the left-column search box (debounced) to query DB `preset_name` + keywords via `GET /api/presets/search?q=…` — the gallery reloads to matching presets only (cleared query restores the AR-filtered gallery).
 4. Selecting a preset unlocks the upload form. If `text_input` is `yes`, a text field appears prefilled with `default_text` and capped at `text_character_limit`.
 5. User selects or drops a file; client rejects non-images and shows an inline error.
 6. Original preview uses a local object URL.
 7. When **both** preset and file are set, **Generate edit** enables.
 8. On generate, the file + preset name (+ `text` when required) are posted to the API; a loading state covers the result panel. Changing preset/file while a request is in flight discards the stale response. A `ar=square` preset on a non-square image is rejected (client + HTTP **400**). Oversized preset text is rejected (HTTP **400**).
-9. Response blob is shown via another object URL; download link reuses that URL.
+9. Response blob is shown via another object URL; download link reuses that URL. Clicking **Download** also `POST`s form field `preset_name` to `/api/presets/use` to increment `popular.used_count` immediately (best-effort; a failed ping does not block the file download). The gallery is not reordered until the search-row refresh is clicked with **Popular** on.
 10. Refresh clears all in-memory state (no persistence of upload or result).
 
 ### Config
@@ -102,9 +104,9 @@ backend/
     polaroid_memory.json
     warm_faded_print.json
   database/
-    schema.sql           # presets table
+    schema.sql           # presets + popular tables
     init_db.py           # create presets.db
-    db_ops.py            # CRUD for preset metadata
+    db_ops.py            # CRUD for preset metadata + download counts
     presets.db           # SQLite file (created by setup/init)
   app/
     main.py              # FastAPI app, CORS, /health, router mount
@@ -112,11 +114,13 @@ backend/
       blur.py            # POST /api/blur
       preset.py          # POST /api/apply-preset
       search.py          # GET /api/presets/search
+      popular.py         # POST /api/presets/use, GET /api/presets/popular
     services/
       blur.py            # is_allowed_image, apply_blur
       image_io.py        # load_image, save_png_bytes, upload/dimension caps
       preset.py          # resolve DB preset name → JSON (sandboxed); apply_named_preset
       preset_search.py   # name/keyword substring search over presets table
+      preset_popular.py  # increment/list popular.used_count
 
 test-suite/              # pytest unit tests for services only (not routes/HTTP)
   conftest.py            # adds backend/ to sys.path
@@ -125,6 +129,7 @@ test-suite/              # pytest unit tests for services only (not routes/HTTP)
   test_image_io.py
   test_preset.py
   test_preset_search.py
+  test_preset_popular.py
   test_database.py
 ```
 ### API contracts
@@ -133,10 +138,12 @@ test-suite/              # pytest unit tests for services only (not routes/HTTP)
 |--------|------|---------|----------|
 | GET | `/health` | — | `{ "status": "ok" }` |
 | GET | `/api/presets/search` | query `q` (name/keyword substring, max 64) | JSON `[{ "preset_name", "keywords", "ar", "text_input", "default_text", "text_character_limit" }, …]` |
+| GET | `/api/presets/popular` | — | JSON `[{ "preset_id", "preset_name", "used_count" }, …]` sorted by `used_count` descending |
+| POST | `/api/presets/use` | `application/x-www-form-urlencoded` field `preset_name` (max 64) | JSON `{ "preset_id", "used_count" }` |
 | POST | `/api/blur` | `multipart/form-data` field `file` | `image/png` bytes |
 | POST | `/api/apply-preset` | `multipart/form-data` fields `preset_name`, `file`, optional `text` (max 200) | `image/png` bytes |
 
-Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, empty file, unknown preset, decode failure, square-only preset on a non-square image). Oversized uploads/images return **413**. Apply-preset returns **503** when the concurrency gate is full.
+Error responses use FastAPI `HTTPException` with JSON `detail` (e.g. non-image, empty file, unknown preset, decode failure, square-only preset on a non-square image). Oversized uploads/images return **413**. Apply-preset returns **503** when the concurrency gate is full. `POST /api/presets/use` returns **404** for an unknown `preset_name`.
 
 Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`), max side **8000** px, max **25M** pixels. Preset JSON paths from the DB must resolve under `backend/presets/` (`PresetPathUnsafeError` otherwise). Apply-preset runs off the event loop via `asyncio.to_thread` and allows only **1** concurrent job (`MAX_CONCURRENT_PRESET_JOBS`) so rembg cannot pile up.
 
@@ -175,8 +182,10 @@ Upload guards (`services/image_io.py`): max **20 MiB** body (`MAX_UPLOAD_BYTES`)
 
 - Location: `backend/database/` (SQLite file `presets.db`, same pattern as a lightweight local store).
 - Table `presets`: `preset_id` (PK auto), `preset_name`, `preset_path`, `keywords` (JSON list), `ar` (`square` or `non-square`, default `non-square`), `text_input` (`yes` or `no`, default `no`), `default_text` (default `''`), `text_character_limit` (integer, default `0`, max 200), `created_date` (auto `datetime('now')`). Existing DBs gain `ar` and text columns via `migrate_schema()`.
-- Service functions: `backend/database/db_ops.py` (`add_preset`, `list_presets`, `search_presets_by_keyword`, `get_preset_by_id`, `update_preset`, `delete_preset`, `seed_default_presets`).
+- Table `popular`: `preset_id` (PK + FK to `presets.preset_id`, `ON DELETE CASCADE`), `used_count` (integer, default `0`). One row per preset; `list_popular()` / `GET /api/presets/popular` return `{ preset_id, preset_name, used_count }` ordered by `used_count DESC`. Existing DBs gain the table (and a 0-count row per preset) via `migrate_schema()`.
+- Service functions: `backend/database/db_ops.py` (`add_preset`, `list_presets`, `search_presets_by_keyword`, `get_preset_by_id`, `update_preset`, `delete_preset`, `seed_default_presets`, `list_popular`, `increment_used_count`, `increment_used_count_by_name`).
 - Keyword search API: `GET /api/presets/search?q=…` → case-insensitive substring match against each preset’s `preset_name` and keywords (`services/preset_search.py` + `routes/search.py`). Returns `ar` plus text-input metadata.
+- Download-count API: `POST /api/presets/use` increments `popular.used_count` for a `preset_name` (`services/preset_popular.py` + `routes/popular.py`). Unknown names return **404**.
 - `./scripts/setup.sh` runs `init_db()` and seeds shipped presets (`bw_bg_glowing_subject`, `polaroid_memory`, `warm_faded_print`).
 
 ### CORS

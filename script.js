@@ -2,7 +2,7 @@
  * Frontend entry — preset gallery, keyword search, upload, and apply-preset generate flow.
  * All session state is in-memory; a page refresh clears upload + result.
  */
-import { applyPreset, searchPresets } from "./js/api.js";
+import { applyPreset, listPopularPresets, recordPresetUse, searchPresets } from "./js/api.js";
 import { isImageFile, createObjectUrl, revokeObjectUrl } from "./js/image.js";
 
 /**
@@ -37,6 +37,7 @@ const els = {
   presetSearch: document.getElementById("preset-search"),
   presetReset: document.getElementById("preset-reset"),
   squareFilter: document.getElementById("square-filter"),
+  popularSortBtn: document.getElementById("popular-sort-btn"),
   searchError: document.getElementById("search-error"),
   input: document.getElementById("image-input"),
   dropZone: document.getElementById("drop-zone"),
@@ -79,6 +80,12 @@ let searchDebounceTimer = null;
 let searchMatchNames = null;
 /** When false, hide square-only presets. Default yes → show all. */
 let inputImageIsSquare = true;
+/** When true, the search-row refresh loads gallery order from the `popular` table. */
+let popularSortActive = false;
+/** Last applied popular `preset_name` order; `null` means original gallery order. */
+let popularOrderNames = null;
+/** Bumped on each popular refresh — ignores stale responses. */
+let popularGeneration = 0;
 
 function formatPresetLabel(name) {
   return String(name || "")
@@ -308,7 +315,7 @@ function setSelectedPreset(name) {
   }
 
   if (els.presetReset) {
-    els.presetReset.disabled = !name;
+    updateGalleryActionButton();
   }
 
   setUploadEnabled(Boolean(name));
@@ -583,13 +590,52 @@ function galleryAfterArFilter(list) {
   return list.filter((p) => p.ar !== "square");
 }
 
+/**
+ * @param {Array<{ preset_name: string }>} list
+ * @returns {Array<{ preset_name: string }>}
+ */
+function galleryAfterPopularSort(list) {
+  if (!popularOrderNames) return list;
+  const rank = new Map(popularOrderNames.map((name, i) => [name, i]));
+  return [...list].sort((a, b) => {
+    const ra = rank.has(a.preset_name) ? rank.get(a.preset_name) : Number.MAX_SAFE_INTEGER;
+    const rb = rank.has(b.preset_name) ? rank.get(b.preset_name) : Number.MAX_SAFE_INTEGER;
+    if (ra !== rb) return ra - rb;
+    return 0;
+  });
+}
+
+function setPopularButtonPressed(pressed) {
+  if (!els.popularSortBtn) return;
+  els.popularSortBtn.setAttribute("aria-pressed", pressed ? "true" : "false");
+}
+
+function updateGalleryActionButton() {
+  if (!els.presetReset) return;
+  if (popularSortActive) {
+    els.presetReset.disabled = false;
+    els.presetReset.setAttribute("aria-label", "Refresh popular preset order");
+    els.presetReset.title = "Refresh popular preset order";
+    return;
+  }
+  if (popularOrderNames) {
+    els.presetReset.disabled = false;
+    els.presetReset.setAttribute("aria-label", "Restore original preset order");
+    els.presetReset.title = "Restore original preset order";
+    return;
+  }
+  els.presetReset.disabled = !selectedPresetName;
+  els.presetReset.setAttribute("aria-label", "Clear selected preset");
+  els.presetReset.title = "Clear selected preset";
+}
+
 function renderVisibleGallery() {
   const searching = searchMatchNames != null;
   const allowed = searching ? new Set(searchMatchNames) : null;
   const matched = allowed
     ? allGalleryPresets.filter((p) => allowed.has(p.preset_name))
     : allGalleryPresets;
-  const visible = galleryAfterArFilter(matched);
+  const visible = galleryAfterPopularSort(galleryAfterArFilter(matched));
 
   let emptyMessage = "No presets to show.";
   if (searching) emptyMessage = "No presets match that search.";
@@ -610,6 +656,51 @@ function readInputSquareSwitch() {
     'input[name="input-square"]:checked',
   );
   inputImageIsSquare = checked?.value !== "no";
+}
+
+async function refreshPopularGallery() {
+  if (!els.presetReset) return;
+
+  const token = ++popularGeneration;
+  clearError(els.searchError);
+  els.presetReset.disabled = true;
+
+  try {
+    const rows = await listPopularPresets(API_BASE);
+    if (token !== popularGeneration) return;
+    popularOrderNames = rows
+      .map((row) => row.preset_name)
+      .filter((name) => isValidPresetName(name));
+    renderVisibleGallery();
+  } catch (err) {
+    if (token !== popularGeneration) return;
+    showError(els.searchError, err.message || "Could not load popular presets.");
+  } finally {
+    if (token === popularGeneration) {
+      updateGalleryActionButton();
+    }
+  }
+}
+
+function handlePopularSortClick() {
+  popularSortActive = !popularSortActive;
+  setPopularButtonPressed(popularSortActive);
+  updateGalleryActionButton();
+}
+
+function handleGalleryActionClick() {
+  if (popularSortActive) {
+    refreshPopularGallery();
+    return;
+  }
+  if (popularOrderNames) {
+    popularGeneration += 1;
+    popularOrderNames = null;
+    updateGalleryActionButton();
+    renderVisibleGallery();
+    return;
+  }
+  setSelectedPreset(null);
 }
 
 async function runPresetSearch(query) {
@@ -653,14 +744,22 @@ els.input.addEventListener("change", () => {
 
 els.generateBtn.addEventListener("click", handleGenerate);
 
+if (els.downloadBtn) {
+  els.downloadBtn.addEventListener("click", () => {
+    if (els.downloadBtn.classList.contains("hidden")) return;
+    if (!selectedPresetName || !editedUrl) return;
+    recordPresetUse(API_BASE, selectedPresetName).catch(() => {
+      /* Tracking is best-effort; the download itself must still proceed. */
+    });
+  });
+}
+
 if (els.presetSearch) {
   els.presetSearch.addEventListener("input", schedulePresetSearch);
 }
 
 if (els.presetReset) {
-  els.presetReset.addEventListener("click", () => {
-    setSelectedPreset(null);
-  });
+  els.presetReset.addEventListener("click", handleGalleryActionClick);
 }
 
 if (els.squareFilter) {
@@ -668,6 +767,10 @@ if (els.squareFilter) {
     readInputSquareSwitch();
     renderVisibleGallery();
   });
+}
+
+if (els.popularSortBtn) {
+  els.popularSortBtn.addEventListener("click", handlePopularSortClick);
 }
 
 els.dropZone.addEventListener("dragenter", (e) => {
