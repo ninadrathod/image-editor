@@ -703,6 +703,10 @@ async function refreshPopularGallery() {
     renderVisibleGallery();
   } catch (err) {
     if (token !== popularGeneration) return;
+    if (!popularOrderNames) {
+      popularSortActive = false;
+      setPopularButtonPressed(false);
+    }
     showError(els.searchError, err.message || "Could not load popular presets.");
   } finally {
     if (token === popularGeneration) {
@@ -714,10 +718,12 @@ async function refreshPopularGallery() {
 function handlePopularSortClick() {
   popularSortActive = !popularSortActive;
   setPopularButtonPressed(popularSortActive);
-  if (!popularSortActive) {
-    restoreNewestFirstOrder();
-    renderVisibleGallery();
+  if (popularSortActive) {
+    refreshPopularGallery();
+    return;
   }
+  restoreNewestFirstOrder();
+  renderVisibleGallery();
   updateGalleryActionButton();
 }
 
