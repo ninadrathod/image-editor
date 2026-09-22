@@ -26,6 +26,10 @@ def test_search_presets_empty_and_match(tmp_path: Path) -> None:
     assert len(by_name) == 1
     assert by_name[0]["preset_name"] == "beta"
 
+    add_preset("gamma", "backend/presets/c.json", ["glow"], db_path=db)
+    newest_first = search_presets("glow", db_path=db)
+    assert [row["preset_name"] for row in newest_first] == ["gamma", "alpha"]
+
 
 def test_search_presets_truncates_long_query(tmp_path: Path) -> None:
     db = tmp_path / "presets.db"

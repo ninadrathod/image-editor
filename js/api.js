@@ -40,6 +40,7 @@ export async function blurImage(baseUrl, file) {
 
 /**
  * GET presets whose name or keywords match `query` (case-insensitive substring).
+ * Results are newest `preset_id` first.
  * @param {string} baseUrl - API origin, e.g. http://localhost:8000
  * @param {string} query - Search text
  * @returns {Promise<Array<{ preset_name: string, keywords: string[], ar?: string, text_input?: string, default_text?: string, text_character_limit?: number }>>}

@@ -82,7 +82,7 @@ let searchMatchNames = null;
 let inputImageIsSquare = true;
 /** When true, the search-row refresh loads gallery order from the `popular` table. */
 let popularSortActive = false;
-/** Last applied popular `preset_name` order; `null` means original gallery order. */
+/** Last applied popular `preset_name` order; `null` means newest-first gallery order. */
 let popularOrderNames = null;
 /** Bumped on each popular refresh — ignores stale responses. */
 let popularGeneration = 0;
@@ -591,18 +591,40 @@ function galleryAfterArFilter(list) {
 }
 
 /**
+ * Reorders `list` to match the order of names in `orderNames`. Entries whose
+ * name isn't in `orderNames` sort after ranked ones (dropped entirely when
+ * `dropUnranked` is set).
+ * @param {Array<{ preset_name: string }>} list
+ * @param {Array<string>|null} orderNames
+ * @param {{ dropUnranked?: boolean }} [options]
+ * @returns {Array<{ preset_name: string }>}
+ */
+function reorderByNameRank(list, orderNames, { dropUnranked = false } = {}) {
+  if (!orderNames) return list;
+  const rank = new Map(orderNames.map((name, i) => [name, i]));
+  const source = dropUnranked ? list.filter((p) => rank.has(p.preset_name)) : list;
+  return [...source].sort((a, b) => {
+    const ra = rank.has(a.preset_name) ? rank.get(a.preset_name) : Number.MAX_SAFE_INTEGER;
+    const rb = rank.has(b.preset_name) ? rank.get(b.preset_name) : Number.MAX_SAFE_INTEGER;
+    return ra - rb;
+  });
+}
+
+/**
+ * Search hits keep API order (newest `preset_id` first). No search → JSON order.
+ * @param {Array<{ preset_name: string }>} list
+ * @returns {Array<{ preset_name: string }>}
+ */
+function galleryAfterSearchOrder(list) {
+  return reorderByNameRank(list, searchMatchNames, { dropUnranked: true });
+}
+
+/**
  * @param {Array<{ preset_name: string }>} list
  * @returns {Array<{ preset_name: string }>}
  */
 function galleryAfterPopularSort(list) {
-  if (!popularOrderNames) return list;
-  const rank = new Map(popularOrderNames.map((name, i) => [name, i]));
-  return [...list].sort((a, b) => {
-    const ra = rank.has(a.preset_name) ? rank.get(a.preset_name) : Number.MAX_SAFE_INTEGER;
-    const rb = rank.has(b.preset_name) ? rank.get(b.preset_name) : Number.MAX_SAFE_INTEGER;
-    if (ra !== rb) return ra - rb;
-    return 0;
-  });
+  return reorderByNameRank(list, popularOrderNames);
 }
 
 function setPopularButtonPressed(pressed) {
@@ -620,13 +642,18 @@ function updateGalleryActionButton() {
   }
   if (popularOrderNames) {
     els.presetReset.disabled = false;
-    els.presetReset.setAttribute("aria-label", "Restore original preset order");
-    els.presetReset.title = "Restore original preset order";
+    els.presetReset.setAttribute("aria-label", "Restore newest-first preset order");
+    els.presetReset.title = "Restore newest-first preset order";
     return;
   }
   els.presetReset.disabled = !selectedPresetName;
   els.presetReset.setAttribute("aria-label", "Clear selected preset");
   els.presetReset.title = "Clear selected preset";
+}
+
+function restoreNewestFirstOrder() {
+  popularGeneration += 1;
+  popularOrderNames = null;
 }
 
 function renderVisibleGallery() {
@@ -635,7 +662,9 @@ function renderVisibleGallery() {
   const matched = allowed
     ? allGalleryPresets.filter((p) => allowed.has(p.preset_name))
     : allGalleryPresets;
-  const visible = galleryAfterPopularSort(galleryAfterArFilter(matched));
+  const visible = galleryAfterPopularSort(
+    galleryAfterSearchOrder(galleryAfterArFilter(matched)),
+  );
 
   let emptyMessage = "No presets to show.";
   if (searching) emptyMessage = "No presets match that search.";
@@ -685,6 +714,10 @@ async function refreshPopularGallery() {
 function handlePopularSortClick() {
   popularSortActive = !popularSortActive;
   setPopularButtonPressed(popularSortActive);
+  if (!popularSortActive) {
+    restoreNewestFirstOrder();
+    renderVisibleGallery();
+  }
   updateGalleryActionButton();
 }
 
@@ -694,8 +727,7 @@ function handleGalleryActionClick() {
     return;
   }
   if (popularOrderNames) {
-    popularGeneration += 1;
-    popularOrderNames = null;
+    restoreNewestFirstOrder();
     updateGalleryActionButton();
     renderVisibleGallery();
     return;

@@ -154,7 +154,7 @@ Table `presets` in `backend/database/presets.db`:
 
 | Column | Meaning |
 |--------|---------|
-| `preset_id` | Auto primary key |
+| `preset_id` | Auto primary key (`list_presets` / search return highest id first) |
 | `preset_name` | Unique name (usually matches JSON `name` / filename stem) |
 | `preset_path` | Repo-relative path, e.g. `backend/presets/foo.json` |
 | `keywords` | JSON list of search tags (also searched with `preset_name` by `GET /api/presets/search?q=…`) |
@@ -171,7 +171,7 @@ Table `popular` (one row per preset; ordered by `used_count` descending when lis
 | `preset_id` | Primary key and foreign key to `presets.preset_id` (`ON DELETE CASCADE`) |
 | `used_count` | Download count (starts at `0`; incremented by `POST /api/presets/use`) |
 
-`add_preset` inserts a `popular` row with `used_count = 0`. Existing databases gain the table via `migrate_schema()`. List with `list_popular()` / `GET /api/presets/popular` (`preset_id`, `preset_name`, `used_count`, highest count first). Download increments `used_count` immediately. The studio **Popular** control turns that sort on; the refresh button beside search reloads the gallery in that order.
+`add_preset` inserts a `popular` row with `used_count = 0`. Existing databases gain the table via `migrate_schema()`. List with `list_presets()` (newest `preset_id` first) and `list_popular()` / `GET /api/presets/popular` (`preset_id`, `preset_name`, `used_count`, highest count first). Download increments `used_count` immediately. The studio **Popular** control turns that sort on; the refresh button beside search reloads the gallery in that order. Unclicking **Popular** restores newest-first order. New gallery entries go at the top of `previews/presets.json`.
 
 ```bash
 source backend/.venv/bin/activate
@@ -204,7 +204,7 @@ print(list_popular())
    - search open-licensed candidates that suit the preset
    - agent writes `previews/_candidates/gallery/index.html` (`render_candidates.py gallery`: square crop + **720×720** + `apply_preset.py`; `--crop ID=left|right|top|bottom` when center clips the subject; pass `--text` when `text_input=yes`)
    - pick the best preview from that page
-   - write `previews/pre-edit/<name>.*`, `previews/post-edit/<name>.png`, `previews/presets.json`, and `previews/CREDITS.md`
+   - write `previews/pre-edit/<name>.*`, `previews/post-edit/<name>.png`, prepend the new object to `previews/presets.json` (newest first), and `previews/CREDITS.md`
 
 ## Adding a new filter (when needed)
 
