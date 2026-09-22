@@ -98,7 +98,7 @@ These often look “unused by the main UI” but are **in scope** for the produc
 - Shipped presets, `previews/**`, DB seed paths
 - `scripts/setup.sh` / `scripts/run.sh` behavior
 - Health endpoint and apply-preset / search APIs
-- Skills and Cursor rules
+- Skills and rules (`.claude/skills/`, `.claude/rules/`, `.cursor/skills/`, `.cursor/rules/`)
 - Comments or thin wrappers that exist for clarity/security boundaries
 
 Also **keep**:
