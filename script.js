@@ -714,10 +714,12 @@ async function refreshPopularGallery() {
 function handlePopularSortClick() {
   popularSortActive = !popularSortActive;
   setPopularButtonPressed(popularSortActive);
-  if (!popularSortActive) {
-    restoreNewestFirstOrder();
-    renderVisibleGallery();
+  if (popularSortActive) {
+    refreshPopularGallery();
+    return;
   }
+  restoreNewestFirstOrder();
+  renderVisibleGallery();
   updateGalleryActionButton();
 }
 
