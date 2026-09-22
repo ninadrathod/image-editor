@@ -96,7 +96,12 @@ def test_seed_default_presets_is_idempotent(tmp_path: Path) -> None:
     assert by_name["warm_faded_print"]["default_text"] == ""
     assert by_name["warm_faded_print"]["text_character_limit"] == 0
     assert second == []
-    assert len(list_presets(db_path=db)) == 3
+    names_in_order = [row["preset_name"] for row in list_presets(db_path=db)]
+    assert names_in_order == [
+        "warm_faded_print",
+        "polaroid_memory",
+        "bw_bg_glowing_subject",
+    ]
     popular = list_popular(db_path=db)
     assert len(popular) == 3
     assert all(row["used_count"] == 0 for row in popular)
@@ -163,6 +168,9 @@ def test_search_presets_by_keyword(tmp_path: Path) -> None:
 
     by_name_spaced = search_presets_by_keyword("warm look", db_path=db)
     assert [r["preset_name"] for r in by_name_spaced] == ["warm_look"]
+
+    newest_first = search_presets_by_keyword("look", db_path=db)
+    assert [r["preset_name"] for r in newest_first] == ["warm_look", "glow_look"]
 
     assert search_presets_by_keyword("missing", db_path=db) == []
 
@@ -289,6 +297,19 @@ def test_popular_increments_and_sorts_descending(tmp_path: Path) -> None:
         c["preset_id"],
     ]
     assert [row["used_count"] for row in ranked] == [2, 1, 0]
+
+
+def test_list_presets_newest_first(tmp_path: Path) -> None:
+    db = tmp_path / "presets.db"
+    init_db(db)
+    add_preset("alpha", "backend/presets/a.json", db_path=db)
+    add_preset("beta", "backend/presets/b.json", db_path=db)
+    add_preset("gamma", "backend/presets/c.json", db_path=db)
+
+    names = [row["preset_name"] for row in list_presets(db_path=db)]
+    ids = [row["preset_id"] for row in list_presets(db_path=db)]
+    assert names == ["gamma", "beta", "alpha"]
+    assert ids == sorted(ids, reverse=True)
 
 
 def test_list_popular_skips_orphan_rows(tmp_path: Path) -> None:

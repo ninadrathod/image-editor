@@ -22,6 +22,7 @@ def search_presets(
     """
     Return preset rows whose name or keywords contain `query` (case-insensitive).
     Empty query → []. Excessively long queries are truncated.
+    Matches keep newest-first `list_presets` order.
     """
     text = (query or "").strip()
     if not text:

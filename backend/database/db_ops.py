@@ -227,9 +227,10 @@ def get_preset_by_name(preset_name: str, *, db_path: Path = DB_PATH) -> dict[str
 
 
 def list_presets(*, db_path: Path = DB_PATH) -> list[dict[str, Any]]:
+    """Return presets with newest rows first (highest preset_id)."""
     with get_connection(db_path) as conn:
         rows = conn.execute(
-            f"SELECT * FROM {TABLE_NAME} ORDER BY preset_id ASC"
+            f"SELECT * FROM {TABLE_NAME} ORDER BY preset_id DESC"
         ).fetchall()
     return [_row_to_dict(row) for row in rows]
 
@@ -241,7 +242,8 @@ def search_presets_by_keyword(
 ) -> list[dict[str, Any]]:
     """
     Return presets whose `preset_name` or keywords contain `query`
-    (case-insensitive substring). Empty/whitespace query returns [].
+    (case-insensitive substring). Matches keep newest-first list order.
+    Empty/whitespace query returns [].
     """
     needle = (query or "").strip().lower()
     if not needle:

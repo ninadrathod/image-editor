@@ -182,7 +182,7 @@ Understand what the shipped preset does, then pick photos where that effect actu
 4. **Once finalized**, write:
    - `previews/pre-edit/<final_name>.*` — the chosen square 720×720 source
    - `previews/post-edit/<final_name>.png` — same crop after the preset
-   - append `{ "preset_name", "ar", "text_input", "default_text", "text_character_limit", "pre_edit_image", "post_edit_image" }` to `previews/presets.json`
+   - prepend `{ "preset_name", "ar", "text_input", "default_text", "text_character_limit", "pre_edit_image", "post_edit_image" }` to `previews/presets.json` (newest first)
    - record source + photographer + license in `previews/CREDITS.md`
    - delete `previews/_candidates/`
 
